@@ -5,10 +5,10 @@ A private digital home for families — connect, share memories, play games, and
 ## Architecture
 
 ```
-homehub/
+famora/
 ├── docs/                 # Information architecture & UI flows
 ├── frontend/             # React Native (Expo) + TypeScript
-└── backend/              # Node.js + Express + PostgreSQL + Redis
+└── backend/              # Node.js + Express + MongoDB + Redis
 ```
 
 ## Tech Stack

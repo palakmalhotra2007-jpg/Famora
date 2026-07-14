@@ -1,5 +1,5 @@
 {
-  "name": "homehub-backend",
+  "name": "famora-backend",
   "version": "1.0.0",
   "description": "Famora family connection app API",
   "main": "dist/index.js",

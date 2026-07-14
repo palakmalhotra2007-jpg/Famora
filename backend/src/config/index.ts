@@ -10,6 +10,19 @@ function requireEnv(key: string, fallback?: string): string {
   return value;
 }
 
+function parseCorsOrigin(value?: string): string | string[] {
+  if (!value) {
+    return '*';
+  }
+
+  const origins = value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins.length === 0 ? '*' : origins.length === 1 ? origins[0] : origins;
+}
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3001', 10),
@@ -34,6 +47,6 @@ export const config = {
     bucket: process.env.AWS_S3_BUCKET ?? 'homehub-media',
     region: process.env.AWS_REGION ?? 'us-east-1',
   },
-  corsOrigin: process.env.CORS_ORIGIN ?? '*',
+  corsOrigin: parseCorsOrigin(process.env.CORS_ORIGIN ?? '*'),
   isDev: (process.env.NODE_ENV ?? 'development') === 'development',
 } as const;
