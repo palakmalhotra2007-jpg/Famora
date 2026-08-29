@@ -4,10 +4,10 @@
   "description": "Famora app workspace runner",
   "scripts": {
     "dev": "node dev.js",
-    "dev:backend": "npm run dev --prefix backend",
-    "dev:frontend": "npm run dev --prefix frontend",
-    "build": "npm run build --prefix backend",
-    "build:all": "npm run build --prefix backend && npm run build --prefix frontend",
+    "dev:backend": "npm run dev --prefix src/server",
+    "dev:frontend": "npm run dev --prefix src/client",
+    "build": "npm run build --prefix src/server",
+    "build:all": "npm run build --prefix src/server && npm run build --prefix src/client",
     "start": "node dev.js"
   }
 }
