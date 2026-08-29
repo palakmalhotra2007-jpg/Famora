@@ -281,8 +281,13 @@ export async function getNewspaperAudio(
   const textToRead = parts.join('\n\n');
 
   // Ensure uploads directory exists
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  } catch (err) {
+    // Filesystem may be read-only in serverless environments
+    logger.warn('Could not create uploads directory', { error: err });
   }
 
   // 4. Try OpenAI TTS first

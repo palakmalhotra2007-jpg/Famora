@@ -10,17 +10,25 @@ import { config } from '../config';
 const router = Router();
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+let storage: any;
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.bin';
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  // Use disk storage if filesystem is available
+  storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.bin';
+      cb(null, `${randomUUID()}${ext}`);
+    },
+  });
+} catch (err) {
+  // Fallback to memory storage in serverless environments
+  console.warn('Filesystem not available, using memory storage:', err);
+  storage = multer.memoryStorage();
+}
 
 const imageUpload = multer({
   storage,
@@ -83,6 +91,29 @@ router.post('/audio', authenticate, audioUpload.single('file'), (req: Request, r
   } catch (error) {
     next(error);
   }
+});
+
+// Error handling middleware for multer and file operation errors
+router.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      message: `Upload error: ${err.message}`,
+    });
+  }
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+  if (err.code === 'ENOENT' || err.code === 'EACCES') {
+    return res.status(507).json({
+      success: false,
+      message: 'File storage unavailable. File uploads are not supported in this environment.',
+    });
+  }
+  throw err;
 });
 
 export default router;
