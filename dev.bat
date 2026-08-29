@@ -1,0 +1,3 @@
+@echo off
+echo Starting Famora Backend and Frontend...
+node dev.js

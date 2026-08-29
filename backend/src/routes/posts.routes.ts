@@ -33,19 +33,28 @@ router.get(
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .populate<{ authorId: InstanceType<typeof User> }>('authorId'),
+          .populate<{ authorId: InstanceType<typeof User> }>('authorId')
+          .populate<{ 'comments.userId': InstanceType<typeof User> }>('comments.userId'),
         Post.countDocuments({ familyId }),
       ]);
 
       const data = posts.map((p) => ({
         ...toApiDoc(p),
-        authorName: p.authorId.displayName,
-        authorAvatar: p.authorId.avatarUrl,
+        authorName: p.authorId?.displayName || 'Family Member',
+        authorAvatar: p.authorId?.avatarUrl,
         reactions: p.reactions.map((r) => ({
           type: r.reactionType,
           userId: r.userId.toString(),
         })),
-        commentCount: 0,
+        comments: (p.comments || []).map((c: any) => ({
+          id: c._id ? c._id.toString() : '',
+          userId: c.userId?._id ? c.userId._id.toString() : (c.userId?.toString() || ''),
+          userName: c.userId?.displayName || 'Family Member',
+          userAvatar: c.userId?.avatarUrl,
+          text: c.text,
+          createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        })),
+        commentCount: p.comments?.length || 0,
       }));
 
       res.json({
@@ -144,6 +153,52 @@ router.get(
       }));
 
       res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/:familyId/:postId/comments',
+  authenticate,
+  requireFamilyMember,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { postId } = req.params;
+      const { text } = req.body as { text?: string };
+      if (!text || !text.trim()) {
+        throw new AppError(400, 'Comment text is required');
+      }
+
+      const post = await Post.findById(postId);
+      if (!post) throw new AppError(404, 'Post not found');
+
+      const user = await User.findById(req.user!.userId);
+      if (!user) throw new AppError(404, 'User not found');
+
+      const newComment = {
+        userId: user._id,
+        text: text.trim(),
+        createdAt: new Date(),
+      };
+
+      post.comments.push(newComment as any);
+      await post.save();
+
+      const savedComment = post.comments[post.comments.length - 1];
+
+      res.status(201).json({
+        success: true,
+        data: {
+          id: savedComment._id.toString(),
+          userId: user.id,
+          userName: user.displayName,
+          userAvatar: user.avatarUrl,
+          text: text.trim(),
+          createdAt: savedComment.createdAt.toISOString(),
+        },
+      });
     } catch (error) {
       next(error);
     }

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   Family,
   FamilyMember,
@@ -141,4 +143,182 @@ Return JSON with a "sections" array of objects: { "type": "funny_moments"|"memor
 
   const parsed = JSON.parse(content) as { sections?: NewspaperSection[] };
   return parsed.sections ?? [];
+}
+
+import { translateText } from '../utils/translate';
+
+export async function translateNewspaper(
+  newspaperDoc: Record<string, any>,
+  targetLang: string
+): Promise<Record<string, unknown>> {
+  if (targetLang.toLowerCase() === 'en' || targetLang.toLowerCase() === 'english') {
+    return newspaperDoc;
+  }
+
+  try {
+    const translatedDoc = { ...newspaperDoc };
+    
+    // Translate Title
+    if (newspaperDoc.title) {
+      translatedDoc.title = await translateText(newspaperDoc.title, targetLang);
+    }
+    
+    // Translate Sections
+    if (Array.isArray(newspaperDoc.sections)) {
+      translatedDoc.sections = await Promise.all(newspaperDoc.sections.map(async (s: NewspaperSection) => ({
+        ...s,
+        title: await translateText(s.title, targetLang),
+        content: await translateText(s.content, targetLang),
+      })));
+    }
+    
+    return translatedDoc;
+  } catch (error) {
+    logger.error('Failed to translate newspaper', { error });
+  }
+
+  // Fallback to original if translation fails
+  return newspaperDoc;
+}
+
+function chunkTextForTTS(text: string, maxLength: number = 180): string[] {
+  const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+    if ((currentChunk + ' ' + trimmed).trim().length <= maxLength) {
+      currentChunk = (currentChunk + ' ' + trimmed).trim();
+    } else {
+      if (currentChunk) chunks.push(currentChunk);
+      if (trimmed.length > maxLength) {
+        const words = trimmed.split(/\s+/);
+        let temp = '';
+        for (const w of words) {
+          if ((temp + ' ' + w).trim().length <= maxLength) {
+            temp = (temp + ' ' + w).trim();
+          } else {
+            if (temp) chunks.push(temp);
+            temp = w;
+          }
+        }
+        currentChunk = temp;
+      } else {
+        currentChunk = trimmed;
+      }
+    }
+  }
+  if (currentChunk) chunks.push(currentChunk);
+  return chunks;
+}
+
+async function fetchGoogleTTS(text: string, lang: string): Promise<Buffer> {
+  const chunks = chunkTextForTTS(text, 180);
+  const buffers: Buffer[] = [];
+
+  for (const chunk of chunks) {
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(
+      lang
+    )}&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (res.ok) {
+      const arrayBuf = await res.arrayBuffer();
+      buffers.push(Buffer.from(arrayBuf));
+    }
+  }
+
+  return Buffer.concat(buffers);
+}
+
+export async function getNewspaperAudio(
+  familyId: string,
+  newspaperId: string,
+  lang?: string
+): Promise<{ url: string; isDemo: boolean }> {
+  const newspaper = await Newspaper.findOne({ _id: newspaperId, familyId });
+  if (!newspaper) {
+    throw new Error('Newspaper not found');
+  }
+
+  const cleanLang = (lang || 'en').trim().toLowerCase();
+  const filename = `newspaper-${newspaperId}-${cleanLang}.mp3`;
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const filePath = path.join(uploadsDir, filename);
+
+  // 1. Check if cached audio exists
+  if (fs.existsSync(filePath)) {
+    return { url: `/uploads/${filename}`, isDemo: false };
+  }
+
+  // 2. Translate newspaper content to the target language if not English
+  let translatedNewspaper = toApiDoc(newspaper)!;
+  if (cleanLang !== 'en' && cleanLang !== 'english') {
+    translatedNewspaper = await translateNewspaper(translatedNewspaper, cleanLang);
+  }
+
+  // 3. Construct text script to synthesize purely in the target language
+  const sections = (translatedNewspaper.sections as NewspaperSection[]) ?? [];
+  const parts: string[] = [];
+  if (translatedNewspaper.title) {
+    parts.push(String(translatedNewspaper.title));
+  }
+  for (const section of sections) {
+    if (section.title && section.content) {
+      parts.push(`${section.title}. ${section.content}`);
+    } else if (section.content) {
+      parts.push(section.content);
+    }
+  }
+  const textToRead = parts.join('\n\n');
+
+  // Ensure uploads directory exists
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // 4. Try OpenAI TTS first
+  if (config.openai.apiKey) {
+    try {
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({ apiKey: config.openai.apiKey });
+
+      const mp3 = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice: 'alloy',
+        input: textToRead.slice(0, 4096),
+      });
+
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+      await fs.promises.writeFile(filePath, buffer);
+      return { url: `/uploads/${filename}`, isDemo: false };
+    } catch (error) {
+      logger.error('OpenAI TTS generation failed, trying Google TTS fallback', { error });
+    }
+  }
+
+  // 5. Try Google TTS fallback in the exact native language (Hindi, Spanish, French, etc.)
+  try {
+    const buffer = await fetchGoogleTTS(textToRead, cleanLang);
+    if (buffer.length > 0) {
+      await fs.promises.writeFile(filePath, buffer);
+      return { url: `/uploads/${filename}`, isDemo: false };
+    }
+  } catch (error) {
+    logger.error('Google TTS fallback failed', { error });
+  }
+
+  // 6. Last resort demo fallback
+  return {
+    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    isDemo: true,
+  };
 }

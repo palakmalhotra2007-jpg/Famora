@@ -3,7 +3,7 @@ import { Newspaper } from '../models';
 import { authenticate } from '../middleware/auth';
 import { requireFamilyMember } from '../middleware/familyAccess';
 import { AppError } from '../middleware/errorHandler';
-import { generateNewspaper } from '../services/newspaper.service';
+import { generateNewspaper, translateNewspaper, getNewspaperAudio } from '../services/newspaper.service';
 import { toApiDoc, startOfDay, endOfDay } from '../utils/transform';
 
 const router = Router();
@@ -23,13 +23,22 @@ router.get(
         editionDate: { $gte: todayStart, $lte: todayEnd },
       });
 
+      const lang = typeof req.query.lang === 'string' ? req.query.lang : undefined;
+
       if (!newspaper) {
-        const generated = await generateNewspaper(String(familyId));
+        let generated = await generateNewspaper(String(familyId));
+        if (lang) {
+          generated = await translateNewspaper(generated, lang);
+        }
         res.json({ success: true, data: generated });
         return;
       }
 
-      res.json({ success: true, data: toApiDoc(newspaper) });
+      let result = toApiDoc(newspaper);
+      if (lang && result) {
+        result = await translateNewspaper(result as any, lang);
+      }
+      res.json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
@@ -70,7 +79,29 @@ router.get(
         throw new AppError(404, 'Newspaper not found');
       }
 
-      res.json({ success: true, data: toApiDoc(newspaper) });
+      const lang = typeof req.query.lang === 'string' ? req.query.lang : undefined;
+      let result = toApiDoc(newspaper);
+      if (lang && result) {
+        result = await translateNewspaper(result as any, lang);
+      }
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  '/:familyId/:newspaperId/audio',
+  authenticate,
+  requireFamilyMember,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { familyId, newspaperId } = req.params;
+      const lang = typeof req.query.lang === 'string' ? req.query.lang : undefined;
+
+      const audioData = await getNewspaperAudio(String(familyId), String(newspaperId), lang || 'en');
+      res.json({ success: true, data: audioData });
     } catch (error) {
       next(error);
     }

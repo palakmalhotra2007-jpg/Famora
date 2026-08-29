@@ -34,28 +34,25 @@ famora/
 - Redis 7+
 - Expo CLI (`npm install -g expo-cli`)
 
-### Backend
+### Run Everything Concurrently
 
 ```bash
-cd backend
-cp .env.example .env
-npm install
 npm run dev
 ```
 
-Ensure MongoDB is running locally (or set `MONGODB_URI` in `.env`).
+### Or Run Separately
 
-API runs at `http://localhost:3001`
-
-### Frontend
-
+**Backend:**
 ```bash
-cd frontend
-npm install
-npx expo start
+cd backend
+npm run dev
 ```
 
-Set `EXPO_PUBLIC_API_URL=http://localhost:3001/api/v1` in frontend `.env`
+**Frontend:**
+```bash
+cd frontend
+npm run dev
+```
 
 ## Features
 

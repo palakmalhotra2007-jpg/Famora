@@ -1,3 +1,6 @@
+import dns from "dns";
+
+dns.setServers(["1.1.1.1", "1.0.0.1"]);
 import { httpServer } from './app';
 import { config } from './config';
 import { connectDatabase, disconnectDatabase } from './db';

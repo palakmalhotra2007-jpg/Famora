@@ -92,6 +92,13 @@ export interface IPostReaction {
   createdAt: Date;
 }
 
+export interface IPostComment {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  text: string;
+  createdAt: Date;
+}
+
 export interface IPost extends Document {
   familyId: Types.ObjectId;
   authorId: Types.ObjectId;
@@ -104,6 +111,7 @@ export interface IPost extends Document {
   latitude?: number;
   longitude?: number;
   reactions: IPostReaction[];
+  comments: IPostComment[];
 }
 
 const postSchema = new Schema<IPost>(
@@ -123,6 +131,16 @@ const postSchema = new Schema<IPost>(
         {
           userId: { type: Schema.Types.ObjectId, ref: 'User' },
           reactionType: String,
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+    comments: {
+      type: [
+        {
+          userId: { type: Schema.Types.ObjectId, ref: 'User' },
+          text: { type: String, required: true, maxlength: 1000 },
           createdAt: { type: Date, default: Date.now },
         },
       ],

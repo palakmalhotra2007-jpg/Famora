@@ -98,12 +98,10 @@ router.put(
         record = await MemberLocation.create({
           familyId,
           userId,
-          sharingEnabled: false,
+          sharingEnabled: true,
         });
-      }
-
-      if (!record.sharingEnabled) {
-        throw new AppError(403, 'Location sharing is disabled. Enable it in Profile first.');
+      } else {
+        record.sharingEnabled = true;
       }
 
       record.latitude = latitude;

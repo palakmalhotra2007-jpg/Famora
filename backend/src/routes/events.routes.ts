@@ -11,12 +11,12 @@ const router = Router();
 
 const createEventSchema = z.object({
   title: z.string().min(1).max(255),
-  description: z.string().optional(),
-  eventType: z.enum(['birthday', 'anniversary', 'vacation', 'dinner', 'movie', 'school', 'doctor', 'general']).default('general'),
-  startTime: z.string().datetime(),
-  endTime: z.string().datetime().optional(),
-  location: z.string().optional(),
-  reminderMinutes: z.number().int().min(0).default(60),
+  description: z.string().optional().nullable(),
+  eventType: z.string().default('general'),
+  startTime: z.string().min(1),
+  endTime: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  reminderMinutes: z.number().int().min(0).optional().default(60),
 });
 
 router.get(

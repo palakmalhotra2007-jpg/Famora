@@ -213,4 +213,70 @@ router.get('/families', authenticate, async (req: Request, res: Response, next: 
   }
 });
 
+router.post('/families/:familyId/members', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { familyId } = req.params;
+    const { displayName, email, role, nickname } = req.body as {
+      displayName?: string;
+      email?: string;
+      role?: string;
+      nickname?: string;
+    };
+
+    if (!displayName || !displayName.trim()) {
+      throw new AppError(400, 'Display name is required');
+    }
+
+    const family = await Family.findById(familyId);
+    if (!family) throw new AppError(404, 'Family not found');
+
+    const cleanName = displayName.trim();
+    const cleanEmail =
+      email && email.trim()
+        ? email.trim().toLowerCase()
+        : `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Date.now()}@famora.local`;
+
+    let targetUser = await User.findOne({ email: cleanEmail });
+
+    if (!targetUser) {
+      const passwordHash = await hashPassword('famora123');
+      targetUser = await User.create({
+        email: cleanEmail,
+        passwordHash,
+        displayName: cleanName,
+        authProvider: 'email',
+      });
+    }
+
+    const existing = await FamilyMember.findOne({
+      familyId: family._id,
+      userId: targetUser._id,
+    });
+
+    if (existing) {
+      throw new AppError(409, `${cleanName} is already a member of this family`);
+    }
+
+    const membership = await FamilyMember.create({
+      familyId: family._id,
+      userId: targetUser._id,
+      role: role || 'member',
+      nickname: nickname || undefined,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: targetUser.id,
+        displayName: targetUser.displayName,
+        email: targetUser.email,
+        avatarUrl: targetUser.avatarUrl,
+        role: membership.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
