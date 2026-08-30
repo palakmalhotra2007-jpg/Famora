@@ -1,12 +1,20 @@
 import { create } from 'zustand';
-import { ThemeMode } from '../theme';
-import { User, Family } from '../types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { ThemeMode } from '../theme';
+import type { User, Family } from '../types';
+
+// ─── Auth Store (Supabase session-backed) ────────────────────
+// The Supabase client handles session persistence internally via AsyncStorage.
+// This store only keeps the hydrated user profile + authenticated flag,
+// which updates on Supabase onAuthStateChange (wired in App.tsx).
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  /** @deprecated — kept for legacy code; Supabase manages tokens internally */
+  accessToken: string | null;
+  setAuth: (user: User, token?: string) => void;
   setUser: (user: User) => void;
   logout: () => void;
 }
@@ -25,16 +33,14 @@ interface ThemeState {
   setTheme: (mode: ThemeMode) => void;
 }
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { persist, createJSONStorage } from 'zustand/middleware';
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
-      setAuth: (user, accessToken) => set({ user, accessToken, isAuthenticated: true }),
+      setAuth: (user, accessToken) =>
+        set({ user, accessToken: accessToken ?? null, isAuthenticated: true }),
       setUser: (user) => set({ user }),
       logout: () => set({ user: null, accessToken: null, isAuthenticated: false }),
     }),

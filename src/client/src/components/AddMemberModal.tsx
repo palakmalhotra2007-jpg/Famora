@@ -187,7 +187,7 @@ export function AddMemberModal({
                   Family members can download Famora and enter this code to join on their own device.
                 </Text>
 
-                <GlassCard style={[styles.codeBox, { borderColor: theme.primary + '44' }]}>
+                <GlassCard style={{ ...styles.codeBox, borderColor: theme.primary + '44' }}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.codeLabel, { color: theme.textTertiary }]}>Invite Code</Text>
                     <Text style={[styles.codeText, { color: theme.primary }]}>{inviteCode}</Text>
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   modalContent: {
     width: '100%',

@@ -27,6 +27,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/body-parser": "^1.19.6",
     "@types/compression": "^1.7.5",
@@ -41,6 +42,7 @@
     "@types/range-parser": "^1.2.7",
     "@types/send": "^1.2.1",
     "@types/webidl-conversions": "^7.0.3",
+    "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

@@ -1,5 +1,5 @@
 import React, { useMemo, createElement } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { spacing, borderRadius, typography } from '../theme';

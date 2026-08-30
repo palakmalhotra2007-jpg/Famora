@@ -411,7 +411,7 @@ export function FamilyScreen() {
           ) : (
             <>
               {/* Location Sharing Card */}
-              <GlassCard style={[styles.locationShareCard, { borderColor: theme.border }]}>
+              <GlassCard style={{ ...styles.locationShareCard, borderColor: theme.border }}>
                 <View style={styles.locationShareLeft}>
                   <View style={[styles.locationShareIcon, { backgroundColor: isSharing ? theme.success + '20' : theme.surfaceSecondary }]}>
                     <Ionicons name={isSharing ? "location" : "location-outline"} size={22} color={isSharing ? theme.success : theme.textSecondary} />

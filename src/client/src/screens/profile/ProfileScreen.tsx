@@ -9,7 +9,7 @@ import { useThemeStore } from '../../store';
 import { spacing, borderRadius, typography } from '../../theme';
 import { pinCardShell } from '../../theme/pin';
 import { GlassCard, AvatarRing, StreakBadge, EmptyState, ScreenHeader, FamilyAuraPicker, AuraBadge, ResponsiveContainer } from '../../components';
-import { fetchMe, setFamilyAura } from '../../services/auth.service';
+import { fetchMe, setFamilyAura, logout as supabaseLogout } from '../../services/auth.service';
 import type { FamilyAuraId } from '../../constants/aura';
 import { fetchHomeDashboard, fetchAchievements, fetchMemberLocations, setLocationSharing, updateMyLocation } from '../../services/family.service';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -101,7 +101,12 @@ export function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabaseLogout();
+    } catch {
+      // ignore
+    }
     logout();
     clearFamily();
     queryClient.clear();

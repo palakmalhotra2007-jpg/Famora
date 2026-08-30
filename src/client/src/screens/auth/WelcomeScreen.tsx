@@ -4,81 +4,70 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../../hooks/useTheme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { AuthStackParamList } from '../../navigation/types';
-import { spacing, typography, borderRadius } from '../../theme';
-import { authColors } from '../../theme/auth';
+
+const BRAND   = '#2563EB';
+const BRAND_D = '#1D4ED8';
+const BG      = '#F8FAFC';
+const SURFACE = '#FFFFFF';
+const BORDER  = '#E2E8F0';
+const TEXT    = '#0F172A';
+const MUTED   = '#64748B';
 
 export function WelcomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const theme = useTheme();
-  const { isWide, contentMaxWidth, horizontalPadding } = useResponsive();
+  const { isWide, isMedium } = useResponsive();
+  const cardWidth = isWide ? 420 : isMedium ? 400 : '100%' as const;
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: '#F0F6FF' }]}>
+    <SafeAreaView style={styles.root}>
       <View style={styles.center}>
-        <View
-          style={[
-            styles.cardWrap,
-            {
-              maxWidth: isWide ? 420 : contentMaxWidth,
-              paddingHorizontal: horizontalPadding,
-            },
-          ]}
-        >
-            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: '#E2E8F0' }]}>
-              <View style={styles.logoBadge}>
-                <Ionicons name="heart" size={22} color="#FFF" />
-              </View>
-              <Text style={styles.brand}>Famora</Text>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Get started</Text>
-              <Text style={[styles.cardSub, { color: theme.textSecondary }]}>
-                Create your account or sign in to rejoin your family.
-              </Text>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  { backgroundColor: authColors.primary },
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => navigation.navigate('Register')}
-              >
-                <Text style={styles.primaryText}>Create account</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFF" />
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.secondaryBtn,
-                  { borderColor: '#BFDBFE', backgroundColor: '#EFF6FF' },
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => navigation.navigate('Login')}
-              >
-                <Ionicons name="log-in-outline" size={18} color={authColors.primary} />
-                <Text style={[styles.secondaryText, { color: authColors.primaryDark }]}>Sign in</Text>
-              </Pressable>
-
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={[styles.dividerText, { color: theme.textTertiary }]}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [styles.ghostBtn, pressed && styles.pressed]}
-                onPress={() => navigation.navigate('JoinFamily')}
-              >
-                <Ionicons name="key-outline" size={18} color={authColors.primary} />
-                <Text style={[styles.ghostText, { color: authColors.primary }]}>Join with invite code</Text>
-              </Pressable>
+        <View style={[styles.card, { width: cardWidth }]}>
+          {/* Logo */}
+          <View style={styles.logoRow}>
+            <View style={styles.logoBadge}>
+              <Ionicons name="heart" size={20} color="#FFF" />
             </View>
+            <Text style={styles.brandLabel}>FAMORA</Text>
+          </View>
 
-            <Text style={[styles.footerNote, { color: theme.textTertiary }]}>
-              Private by design · Only your family can see what you share
-            </Text>
+          {/* Headline */}
+          <Text style={styles.headline}>Your family's private space</Text>
+          <Text style={styles.sub}>
+            Share memories, stay connected, and celebrate every moment — just with the people who matter most.
+          </Text>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Actions */}
+          <Pressable
+            style={({ pressed }) => [styles.btnPrimary, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('Register')}
+          >
+            <Text style={styles.btnPrimaryText}>Create account</Text>
+            <Ionicons name="arrow-forward" size={16} color="#FFF" />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.btnOutline, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('Login')}
+          >
+            <Text style={styles.btnOutlineText}>Sign in</Text>
+          </Pressable>
+
+          {/* Ghost link */}
+          <Pressable
+            style={({ pressed }) => [styles.btnGhost, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('JoinFamily')}
+          >
+            <Ionicons name="key-outline" size={15} color={MUTED} />
+            <Text style={styles.btnGhostText}>Join with invite code</Text>
+          </Pressable>
+
+          {/* Footer */}
+          <Text style={styles.footer}>Private by design · Only your family sees what you share</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -86,85 +75,114 @@ export function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: {
+    flex: 1,
+    backgroundColor: BG,
+  },
   center: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
+    padding: 16,
   },
-  cardWrap: { width: '100%', gap: spacing.md },
   card: {
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    padding: 36,
     borderWidth: 1,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
-    alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
+    borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
     elevation: 3,
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 24,
+  },
   logoBadge: {
-    width: 48,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: BRAND,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: BRAND,
+    letterSpacing: 2,
+  },
+  headline: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: TEXT,
+    letterSpacing: -0.4,
+    marginBottom: 10,
+  },
+  sub: {
+    fontSize: 14,
+    color: MUTED,
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: BORDER,
+    marginVertical: 24,
+  },
+  btnPrimary: {
     height: 48,
-    borderRadius: borderRadius.lg,
-    backgroundColor: authColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brand: {
-    ...typography.label,
-    color: authColors.primary,
-    marginTop: -spacing.xs,
-  },
-  cardTitle: { ...typography.headline, fontSize: 24, textAlign: 'center' },
-  cardSub: { ...typography.body, lineHeight: 22, textAlign: 'center' },
-  primaryBtn: {
+    backgroundColor: BRAND,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    width: '100%',
-    marginTop: spacing.xs,
+    gap: 8,
+    marginBottom: 10,
   },
-  primaryText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
-  secondaryBtn: {
+  btnPrimaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  btnOutline: {
+    height: 48,
+    backgroundColor: SURFACE,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: BRAND,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  btnOutlineText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: BRAND,
+  },
+  btnGhost: {
+    height: 42,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    width: '100%',
+    gap: 6,
+    marginBottom: 20,
   },
-  secondaryText: { fontWeight: '600', fontSize: 16 },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    width: '100%',
+  btnGhostText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: MUTED,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
-  dividerText: { ...typography.caption, textTransform: 'lowercase', letterSpacing: 0 },
-  ghostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    width: '100%',
-  },
-  ghostText: { fontWeight: '600', fontSize: 15 },
-  footerNote: {
-    ...typography.caption,
+  footer: {
+    fontSize: 12,
+    color: '#94A3B8',
     textAlign: 'center',
-    textTransform: 'none',
-    letterSpacing: 0,
+    lineHeight: 18,
   },
-  pressed: { opacity: 0.88 },
+  pressed: { opacity: 0.82 },
 });

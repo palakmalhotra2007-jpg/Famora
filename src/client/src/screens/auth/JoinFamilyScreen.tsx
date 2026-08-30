@@ -34,8 +34,8 @@ export function JoinFamilyScreen() {
           setLoading(false);
           return;
         }
-        const auth = await login(email.trim(), password);
-        setAuth(auth.user, auth.accessToken);
+        const user = await login(email.trim().toLowerCase(), password);
+        setAuth(user);
       }
 
       const family = await joinFamily(inviteCode.trim().toUpperCase());
@@ -43,7 +43,10 @@ export function JoinFamilyScreen() {
       const families = await fetchFamilies();
       setFamilies(families);
     } catch (error) {
-      Alert.alert('Could not join', error instanceof Error ? error.message : 'Invalid invite code or credentials');
+      Alert.alert(
+        'Could not join',
+        error instanceof Error ? error.message : 'Invalid invite code or credentials'
+      );
     } finally {
       setLoading(false);
     }
@@ -53,8 +56,21 @@ export function JoinFamilyScreen() {
     <AuthLayout title="Join a family" subtitle="Enter the invite code from your family admin">
       {!isAuthenticated && (
         <>
-          <AuthField label="Email" value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" />
-          <AuthField label="Password" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
+          <AuthField
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="you@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <AuthField
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            placeholder="••••••••"
+            secureTextEntry
+          />
         </>
       )}
       <AuthField
@@ -62,6 +78,7 @@ export function JoinFamilyScreen() {
         value={inviteCode}
         onChangeText={(text) => setInviteCode(text.toUpperCase())}
         placeholder="ABC12345"
+        autoCapitalize="none"
       />
       <AuthButton label="Join Family" onPress={handleJoin} loading={loading} />
       <Pressable onPress={() => navigation.navigate('Register')}>
@@ -72,5 +89,11 @@ export function JoinFamilyScreen() {
 }
 
 const styles = StyleSheet.create({
-  link: { ...typography.caption, textAlign: 'center', fontWeight: '600', marginTop: 8, color: authColors.primary },
+  link: {
+    ...typography.caption,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: 8,
+    color: authColors.primary,
+  },
 });

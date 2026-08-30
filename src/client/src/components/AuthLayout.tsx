@@ -8,16 +8,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../hooks/useTheme';
 import { useResponsive } from '../hooks/useResponsive';
-import { ResponsiveContainer } from './ResponsiveContainer';
-import { spacing, typography, borderRadius } from '../theme';
-import { authColors } from '../theme/auth';
+
+// ─── Constants ───────────────────────────────────────────────
+const BRAND   = '#2563EB';
+const BRAND_D = '#1D4ED8';
+const BG      = '#F8FAFC';
+const SURFACE = '#FFFFFF';
+const BORDER  = '#E2E8F0';
+const TEXT    = '#0F172A';
+const MUTED   = '#64748B';
+const ERROR_BG = '#FFF1F2';
+const ERROR_TX = '#BE123C';
+
+// ─── AuthLayout ──────────────────────────────────────────────
 
 interface AuthLayoutProps {
   title: string;
@@ -28,66 +37,55 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ title, subtitle, error, children, showBack = true }: AuthLayoutProps) {
-  const theme = useTheme();
   const navigation = useNavigation();
-  const { isWide, contentMaxWidth } = useResponsive();
+  const { isWide, isMedium } = useResponsive();
+  const cardWidth = isWide ? 420 : isMedium ? 400 : '100%' as const;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#F0F9FF' }]}>
-      <LinearGradient 
-        colors={['#E0F2FE', '#BAE6FD', '#7DD3FC']} 
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.bgGradient} 
-      />
+    <SafeAreaView style={styles.root}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ResponsiveContainer style={styles.page}>
-            <View style={[styles.cardWrap, { maxWidth: isWide ? 440 : contentMaxWidth }]}>
-              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.cardHeader}>
-                  {showBack && navigation.canGoBack() ? (
-                    <Pressable
-                      onPress={() => navigation.goBack()}
-                      style={[styles.backBtn]}
-                      hitSlop={8}
-                    >
-                      <Ionicons name="arrow-back" size={20} color="#0284C7" />
-                    </Pressable>
-                  ) : (
-                    <View style={styles.backSpacer} />
-                  )}
-                  <View style={styles.logoBadge}>
-                    <Ionicons name="heart" size={18} color="#FFF" />
-                  </View>
-                </View>
+          <View style={[styles.card, { width: cardWidth }]}>
+            {/* Header row */}
+            <View style={styles.cardHeader}>
+              {showBack && navigation.canGoBack() ? (
+                <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={8}>
+                  <Ionicons name="arrow-back" size={18} color={BRAND} />
+                </Pressable>
+              ) : <View style={styles.backBtn} />}
 
-                <Text style={styles.logo}>Famora</Text>
-                <Text style={styles.title}>{title}</Text>
-                {subtitle ? (
-                  <Text style={styles.subtitle}>{subtitle}</Text>
-                ) : null}
-                
-                {error ? (
-                  <View style={styles.errorBox}>
-                    <Ionicons name="warning" size={18} color="#DC2626" />
-                    <Text style={styles.errorText}>{error}</Text>
-                  </View>
-                ) : null}
-
-                <View style={styles.form}>{children}</View>
+              <View style={styles.logoBadge}>
+                <Ionicons name="heart" size={16} color="#FFF" />
               </View>
             </View>
-          </ResponsiveContainer>
+
+            {/* Brand + Title */}
+            <Text style={styles.brandLabel}>FAMORA</Text>
+            <Text style={styles.title}>{title}</Text>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+
+            {/* Error */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={ERROR_TX} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Form */}
+            <View style={styles.form}>{children}</View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+// ─── AuthField ────────────────────────────────────────────────
 
 interface AuthFieldProps {
   label: string;
@@ -101,45 +99,39 @@ interface AuthFieldProps {
 }
 
 export function AuthField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  autoCapitalize = 'none',
-  keyboardType = 'default',
-  icon,
+  label, value, onChangeText, placeholder,
+  secureTextEntry, autoCapitalize = 'none',
+  keyboardType = 'default', icon,
 }: AuthFieldProps) {
-  const theme = useTheme();
-  const [isSecure, setIsSecure] = useState(secureTextEntry);
+  const [hidden, setHidden] = useState(secureTextEntry);
 
   return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputRow}>
-        {icon ? (
-          <Ionicons name={icon} size={20} color="#94A3B8" style={styles.inputIcon} />
-        ) : null}
+    <View style={styles.fieldGroup}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldRow}>
+        {icon ? <Ionicons name={icon} size={18} color={MUTED} style={styles.fieldIcon} /> : null}
         <TextInput
-          style={[styles.inputField, { color: '#0F172A' }]}
+          style={[styles.fieldInput, !icon && styles.fieldInputNoIcon]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#94A3B8"
-          secureTextEntry={isSecure}
+          secureTextEntry={hidden}
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           autoCorrect={false}
         />
         {secureTextEntry ? (
-          <Pressable onPress={() => setIsSecure(!isSecure)} style={styles.eyeBtn}>
-            <Ionicons name={isSecure ? 'eye-outline' : 'eye-off-outline'} size={20} color={theme.textTertiary} />
+          <Pressable onPress={() => setHidden(!hidden)} style={styles.eyeBtn}>
+            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={18} color={MUTED} />
           </Pressable>
         ) : null}
       </View>
     </View>
   );
 }
+
+// ─── AuthButton ───────────────────────────────────────────────
 
 interface AuthButtonProps {
   label: string;
@@ -150,141 +142,177 @@ interface AuthButtonProps {
 }
 
 export function AuthButton({ label, onPress, variant = 'primary', loading, disabled }: AuthButtonProps) {
-  const isPrimary = variant === 'primary';
+  const isPrimary   = variant === 'primary';
+  const isSecondary = variant === 'secondary';
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [
-        styles.button,
-        isPrimary
-          ? { backgroundColor: '#0284C7' }
-          : variant === 'secondary'
-            ? { backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#0284C7' }
-            : { backgroundColor: 'transparent' },
-        pressed && { opacity: 0.88 },
-        (disabled || loading) && styles.buttonDisabled,
+        styles.btn,
+        isPrimary   && styles.btnPrimary,
+        isSecondary && styles.btnSecondary,
+        variant === 'ghost' && styles.btnGhost,
+        pressed && styles.btnPressed,
+        (disabled || loading) && styles.btnDisabled,
       ]}
     >
-      {isPrimary && !loading ? (
-        <Ionicons name="log-in-outline" size={18} color="#FFF" style={styles.btnIcon} />
-      ) : null}
-      <Text style={[styles.buttonText, { color: isPrimary ? '#FFF' : '#0284C7' }]}>
-        {loading ? 'Please wait...' : label}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={isPrimary ? '#FFF' : BRAND} size="small" />
+      ) : (
+        <Text style={[styles.btnText, !isPrimary && styles.btnTextAlt]}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  bgGradient: {
-    ...StyleSheet.absoluteFill,
+  root: {
+    flex: 1,
+    backgroundColor: BG,
   },
   flex: { flex: 1 },
   scroll: {
     flexGrow: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.lg,
+    paddingVertical: 40,
+    paddingHorizontal: 16,
   },
-  page: { alignItems: 'center' },
-  cardWrap: { width: '100%' },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    padding: 36,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 24,
-    padding: spacing.xl,
-    shadowColor: '#0284C7',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    elevation: 8,
+    borderColor: BORDER,
+    // Clean shadow — no blur
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 20,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F0F9FF',
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backSpacer: { width: 40 },
   logoBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#0284C7',
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0284C7',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
-  logo: {
-    ...typography.label,
-    color: '#0284C7',
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    fontSize: 12,
+  brandLabel: {
+    fontSize: 11,
     fontWeight: '800',
+    color: BRAND,
+    letterSpacing: 2,
+    marginBottom: 6,
   },
-  title: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, color: '#64748B', marginTop: spacing.xs, lineHeight: 22 },
-  errorBox: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#FEF2F2', 
-    padding: spacing.sm, 
-    borderRadius: 8, 
-    marginTop: spacing.md, 
-    gap: spacing.xs 
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: TEXT,
+    letterSpacing: -0.4,
+    marginBottom: 6,
   },
-  errorText: { color: '#DC2626', fontSize: 13, fontWeight: '600' },
-  form: { marginTop: spacing.lg, gap: spacing.md },
-  inputGroup: { gap: spacing.xs + 2 },
-  label: { fontSize: 13, fontWeight: '700', color: '#475569' },
-  inputRow: {
+  subtitle: {
+    fontSize: 14,
+    color: MUTED,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    minHeight: 56,
+    gap: 8,
+    backgroundColor: ERROR_BG,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
   },
-  inputIcon: { marginLeft: spacing.md },
-  inputField: {
+  errorText: {
     flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    color: ERROR_TX,
   },
-  eyeBtn: {
-    padding: spacing.md,
+  form: {
+    marginTop: 24,
+    gap: 16,
   },
-  button: {
+
+  // Field
+  fieldGroup: { gap: 6 },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  fieldRow: {
     flexDirection: 'row',
-    borderRadius: 16,
-    paddingVertical: 16,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    minHeight: 48,
+  },
+  fieldIcon: { marginLeft: 14 },
+  fieldInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: TEXT,
+  },
+  fieldInputNoIcon: { paddingHorizontal: 14 },
+  eyeBtn: { padding: 12 },
+
+  // Button
+  btn: {
+    height: 48,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.sm,
-    shadowColor: '#0284C7',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    marginTop: 4,
   },
-  btnIcon: { marginRight: spacing.sm },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { fontWeight: '700', fontSize: 16 },
+  btnPrimary: {
+    backgroundColor: BRAND,
+  },
+  btnSecondary: {
+    backgroundColor: SURFACE,
+    borderWidth: 1.5,
+    borderColor: BRAND,
+  },
+  btnGhost: {
+    backgroundColor: 'transparent',
+  },
+  btnPressed: { opacity: 0.85 },
+  btnDisabled: { opacity: 0.5 },
+  btnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  btnTextAlt: {
+    color: BRAND,
+  },
 });

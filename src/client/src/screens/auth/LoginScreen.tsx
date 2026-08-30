@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthLayout, AuthField, AuthButton } from '../../components/AuthLayout';
@@ -28,12 +28,11 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      const result = await login(email.trim(), password);
-      setAuth(result.user, result.accessToken);
+      const user = await login(email.trim().toLowerCase(), password);
+      setAuth(user);
 
       const families = await fetchFamilies();
       setFamilies(families);
-
       if (families.length > 0) {
         setCurrentFamily(families[0]);
       }
@@ -53,6 +52,7 @@ export function LoginScreen() {
         onChangeText={setEmail}
         placeholder="you@email.com"
         keyboardType="email-address"
+        autoCapitalize="none"
       />
       <AuthField
         label="Password"
@@ -75,6 +75,12 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   footerLink: { alignItems: 'center', marginTop: spacing.sm },
-  link: { ...typography.caption, textAlign: 'center', textTransform: 'none', letterSpacing: 0, color: '#64748B' },
+  link: {
+    ...typography.caption,
+    textAlign: 'center',
+    textTransform: 'none',
+    letterSpacing: 0,
+    color: '#64748B',
+  },
   linkAccent: { color: authColors.primary, fontWeight: '700' },
 });

@@ -17,26 +17,20 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
   const hasNumberOrSymbol = /[^A-Za-z]/.test(password);
-
   const score = [hasLength, hasUpper, hasLower, hasNumberOrSymbol].filter(Boolean).length;
 
-  const getStrengthColor = () => {
-    if (score <= 1) return '#EF4444'; // Red
-    if (score <= 2) return '#F59E0B'; // Orange
-    if (score === 3) return '#10B981'; // Green
-    return '#059669'; // Darker green
-  };
-
-  const getStrengthText = () => {
-    if (score <= 1) return 'Weak';
-    if (score <= 2) return 'Fair';
-    if (score === 3) return 'Good';
-    return 'Strong';
-  };
+  const getColor = () =>
+    score <= 1 ? '#EF4444' : score <= 2 ? '#F59E0B' : score === 3 ? '#10B981' : '#059669';
+  const getLabel = () =>
+    score <= 1 ? 'Weak' : score <= 2 ? 'Fair' : score === 3 ? 'Good' : 'Strong';
 
   const CheckItem = ({ met, text }: { met: boolean; text: string }) => (
     <View style={styles.checkItem}>
-      <Ionicons name={met ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={met ? '#10B981' : '#94A3B8'} />
+      <Ionicons
+        name={met ? 'checkmark-circle' : 'ellipse-outline'}
+        size={14}
+        color={met ? '#10B981' : '#94A3B8'}
+      />
       <Text style={[styles.checkText, { color: met ? '#334155' : '#94A3B8' }]}>{text}</Text>
     </View>
   );
@@ -45,16 +39,13 @@ function PasswordStrengthIndicator({ password }: { password: string }) {
     <View style={styles.strengthContainer}>
       <View style={styles.strengthHeader}>
         <Text style={styles.strengthLabel}>Password strength:</Text>
-        <Text style={[styles.strengthValue, { color: getStrengthColor() }]}>{getStrengthText()}</Text>
+        <Text style={[styles.strengthValue, { color: getColor() }]}>{getLabel()}</Text>
       </View>
       <View style={styles.barsRow}>
         {[1, 2, 3, 4].map((level) => (
           <View
             key={level}
-            style={[
-              styles.bar,
-              { backgroundColor: score >= level ? getStrengthColor() : '#E2E8F0' },
-            ]}
+            style={[styles.bar, { backgroundColor: score >= level ? getColor() : '#E2E8F0' }]}
           />
         ))}
       </View>
@@ -87,8 +78,8 @@ export function RegisterScreen() {
 
     setLoading(true);
     try {
-      const result = await register(email.trim(), password, displayName.trim());
-      setAuth(result.user, result.accessToken);
+      const user = await register(email.trim().toLowerCase(), password, displayName.trim());
+      setAuth(user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create account');
     } finally {
@@ -98,10 +89,29 @@ export function RegisterScreen() {
 
   return (
     <AuthLayout title="Create account" subtitle="Start your family's private home" error={error}>
-      <AuthField label="Your name" value={displayName} onChangeText={setDisplayName} placeholder="Palak" autoCapitalize="words" />
-      <AuthField label="Email" value={email} onChangeText={setEmail} placeholder="you@email.com" keyboardType="email-address" />
-      <AuthField label="Password" value={password} onChangeText={setPassword} placeholder="Min 8 characters" secureTextEntry />
-      
+      <AuthField
+        label="Your name"
+        value={displayName}
+        onChangeText={setDisplayName}
+        placeholder="Palak"
+        autoCapitalize="words"
+      />
+      <AuthField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        placeholder="you@email.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <AuthField
+        label="Password"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Min 8 characters"
+        secureTextEntry
+      />
+
       <PasswordStrengthIndicator password={password} />
 
       <AuthButton label="Create Account" onPress={handleRegister} loading={loading} />
@@ -113,9 +123,20 @@ export function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  link: { ...typography.caption, textAlign: 'center', fontWeight: '600', marginTop: 8, color: '#0284C7' },
+  link: {
+    ...typography.caption,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: 8,
+    color: authColors.primary,
+  },
   strengthContainer: { marginTop: -4, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
-  strengthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  strengthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   strengthLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
   strengthValue: { fontSize: 12, fontWeight: '700' },
   barsRow: { flexDirection: 'row', gap: 4, marginBottom: 12 },

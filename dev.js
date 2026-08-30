@@ -1,35 +1,26 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
 const isWin = process.platform === 'win32';
 const npmCmd = isWin ? 'npm.cmd' : 'npm';
 
-console.log('🚀 Starting Famora Backend & Frontend concurrently...\n');
+console.log('🚀 Starting Famora (Supabase — no backend needed)...\n');
 
-const backendDir = fs.existsSync(path.join(__dirname, 'backend'))
-  ? path.join(__dirname, 'backend')
-  : path.join(__dirname, 'Famora', 'backend');
+const clientDir = path.join(__dirname, 'src', 'client');
 
-const frontendDir = fs.existsSync(path.join(__dirname, 'frontend'))
-  ? path.join(__dirname, 'frontend')
-  : path.join(__dirname, 'Famora', 'frontend');
-
-const backend = spawn(npmCmd, ['run', 'dev'], {
-  cwd: backendDir,
+const client = spawn(npmCmd, ['run', 'dev'], {
+  cwd: clientDir,
   stdio: 'inherit',
   shell: true,
 });
 
-const frontend = spawn(npmCmd, ['run', 'dev'], {
-  cwd: frontendDir,
-  stdio: 'inherit',
-  shell: true,
+client.on('error', (err) => {
+  console.error('Failed to start client:', err.message);
+  process.exit(1);
 });
 
 function cleanup() {
-  if (backend && !backend.killed) backend.kill();
-  if (frontend && !frontend.killed) frontend.kill();
+  if (client && !client.killed) client.kill();
   process.exit();
 }
 

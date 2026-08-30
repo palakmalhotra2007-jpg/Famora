@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   commentsBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   commentsSheet: {
     width: '100%',

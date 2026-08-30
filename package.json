@@ -1,13 +1,11 @@
 {
   "name": "famora-workspace",
   "version": "1.0.0",
-  "description": "Famora app workspace runner",
+  "description": "Famora app workspace — powered by Supabase, no backend server needed",
   "scripts": {
     "dev": "node dev.js",
-    "dev:backend": "npm run dev --prefix src/server",
-    "dev:frontend": "npm run dev --prefix src/client",
-    "build": "npm run build --prefix src/server",
-    "build:all": "npm run build --prefix src/server && npm run build --prefix src/client",
-    "start": "node dev.js"
+    "start": "node dev.js",
+    "client": "npm run dev --prefix src/client",
+    "build": "npm run build --prefix src/client"
   }
 }
