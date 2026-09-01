@@ -1,10 +1,11 @@
-// Re-export the supabase client so any legacy import of apiClient still resolves.
-// All network calls now go through Supabase directly — no Express backend needed.
-export { supabase as apiClient } from '../lib/supabase';
-export { supabase } from '../lib/supabase';
-
-// Kept for MemoriesScreen / family.service uploads that resolve storage URLs
-export function getSupabaseStorageUrl(bucket: string, path: string): string {
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
-}
+/**
+ * Legacy compatibility shim.
+ *
+ * All network I/O now goes through Supabase directly.
+ * This file keeps old `apiClient` imports working without needing a
+ * mass rename across the codebase.
+ *
+ * New code should import `supabase` directly from `../lib/supabase`.
+ * Storage URL resolution should use `resolveMediaUrl` from `family.service`.
+ */
+export { supabase as apiClient, supabase } from '../lib/supabase';

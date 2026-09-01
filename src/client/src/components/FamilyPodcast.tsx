@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
-  Alert,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
@@ -26,6 +25,7 @@ import {
   submitVoiceNote,
   resolveMediaUrl,
 } from '../services/family.service';
+import { showAlert } from '../utils/alert';
 
 interface FamilyPodcastProps {
   familyId: string;
@@ -56,32 +56,42 @@ export function FamilyPodcast({ familyId, familyName }: FamilyPodcastProps) {
     queryFn: () => fetchPodcastEpisode(familyId),
   });
 
-  const myStatus = status?.members.find((m) => m.userId === userId);
+  const myStatus  = status?.members.find((m) => m.userId === userId);
   const hasRecorded = myStatus?.hasVoiceNote ?? false;
 
+  // Unload the Audio.Sound object when the component unmounts to prevent
+  // a native audio resource leak if playback is in progress.
+  React.useEffect(() => {
+    return () => {
+      soundRef.current?.unloadAsync().catch(() => {});
+    };
+  }, []);
+
   const handleRecorded = async (payload: { audioUrl: string; durationSec: number }) => {
-    await submitVoiceNote(familyId, {
-      ...payload,
-      caption: caption.trim() || undefined,
-    });
-    setCaption('');
-    await queryClient.invalidateQueries({ queryKey: ['podcastStatus', familyId] });
-    await queryClient.invalidateQueries({ queryKey: ['voiceNotes', familyId] });
-    Alert.alert('Saved', 'Your weekly voice note is in. Everyone can now help build the podcast.');
+    try {
+      await submitVoiceNote(familyId, {
+        ...payload,
+        caption: caption.trim() || undefined,
+      });
+      setCaption('');
+      await queryClient.invalidateQueries({ queryKey: ['podcastStatus', familyId] });
+      await queryClient.invalidateQueries({ queryKey: ['voiceNotes', familyId] });
+    } catch (error) {
+      showAlert('Error', error instanceof Error ? error.message : 'Could not save voice note');
+    }
   };
 
   const handleGenerate = async () => {
     if (!hasRecorded) {
-      Alert.alert('Voice note required', 'Record your weekly voice note before generating the podcast.');
+      showAlert('Voice note required', 'Record your weekly voice note before generating the podcast.');
       return;
     }
     setGenerating(true);
     try {
       await generatePodcastEpisode(familyId);
       await queryClient.invalidateQueries({ queryKey: ['podcastEpisode', familyId] });
-      Alert.alert('Ready', 'This week\'s family podcast script is ready.');
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not generate podcast');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not generate podcast');
     } finally {
       setGenerating(false);
     }
@@ -101,13 +111,11 @@ export function FamilyPodcast({ familyId, familyName }: FamilyPodcastProps) {
       soundRef.current = sound;
       setPlayingId(noteId);
       sound.setOnPlaybackStatusUpdate((s) => {
-        if (s.isLoaded && s.didJustFinish) {
-          setPlayingId(null);
-        }
+        if (s.isLoaded && s.didJustFinish) setPlayingId(null);
       });
       await sound.playAsync();
     } catch {
-      Alert.alert('Playback error', 'Could not play this voice note.');
+      showAlert('Playback error', 'Could not play this voice note.');
     }
   };
 

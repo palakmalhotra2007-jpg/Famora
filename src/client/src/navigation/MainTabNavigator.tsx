@@ -56,11 +56,10 @@ export function MainTabNavigator() {
             ...(isWeb && isWide
               ? {
                   maxWidth: contentMaxWidth,
-                  width: '100%',
-                  alignSelf: 'center' as const,
-                  left: '50%',
-                  right: 'auto',
-                  transform: [{ translateX: -contentMaxWidth / 2 }],
+                  width: contentMaxWidth,
+                  left: '50%' as unknown as number,
+                  transform: [{ translateX: -(contentMaxWidth / 2) }],
+                  right: 'auto' as unknown as number,
                 }
               : {}),
           },

@@ -1,4 +1,11 @@
-﻿import { Platform } from 'react-native';
+﻿/**
+ * Family data service.
+ *
+ * Every function talks directly to Supabase — no Express backend.
+ * Grouped by domain: Media → Dashboard → Posts → Stories → Memories
+ * → Events → Newspaper → Daily challenge → Bucket list → Games
+ * → Achievements → Assistant → Locations → Mailbox → Wall → Podcast
+ */
 import { supabase } from '../lib/supabase';
 import { dbInsert, dbInsertMany, dbUpdate, dbUpsert } from '../lib/db';
 import type {
@@ -38,30 +45,52 @@ function getWeekStart(): string {
 
 // â”€â”€ Upload helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export async function uploadImage(uri: string, _token?: string): Promise<string> {
-  const userId    = await uid();
-  const filename  = `${Date.now()}_${uri.split('/').pop()?.split('?')[0] ?? 'photo.jpg'}`;
-  const ext       = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-  const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-  const blob: Blob = await fetch(uri).then((r) => r.blob());
+export async function uploadImage(uri: string): Promise<string> {
+  const userId   = await uid();
+  const filename = `${Date.now()}_${uri.split('/').pop()?.split('?')[0] ?? 'photo.jpg'}`;
+  const ext      = filename.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const contentType =
+    ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+  // On web, expo-image-picker returns a blob: URL — fetch() handles it fine.
+  // On native it returns a file:// path — also handled by fetch().
+  // If fetch fails for any reason we surface the real message.
+  let blob: Blob;
+  try {
+    const res = await fetch(uri);
+    blob = await res.blob();
+  } catch (e) {
+    throw new Error(`Cannot read image: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   const storagePath = `${userId}/${filename}`;
-  const { error } = await supabase.storage.from('media').upload(storagePath, blob, { contentType, upsert: false });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.storage
+    .from('media')
+    .upload(storagePath, blob, { contentType, upsert: true });
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
   return supabase.storage.from('media').getPublicUrl(storagePath).data.publicUrl;
 }
 
-export async function uploadAudio(uri: string, _token?: string): Promise<string> {
+export async function uploadAudio(uri: string): Promise<string> {
   const userId   = await uid();
   const filename = uri.split('/').pop()?.split('?')[0] ?? 'voice.m4a';
   const ext      = filename.split('.').pop()?.toLowerCase();
   const contentType = ext === 'webm' ? 'audio/webm' : ext === 'wav' ? 'audio/wav'
     : ext === 'mp3' ? 'audio/mpeg' : 'audio/m4a';
-  const blob: Blob = await fetch(uri).then((r) => r.blob());
+
+  let blob: Blob;
+  try {
+    const res = await fetch(uri);
+    blob = await res.blob();
+  } catch (e) {
+    throw new Error(`Cannot read audio: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   const storagePath = `${userId}/${Date.now()}_${filename}`;
-  const { error } = await supabase.storage.from('audio').upload(storagePath, blob, { contentType, upsert: false });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.storage
+    .from('audio')
+    .upload(storagePath, blob, { contentType, upsert: true });
+  if (error) throw new Error(`Audio upload failed: ${error.message}`);
   return supabase.storage.from('audio').getPublicUrl(storagePath).data.publicUrl;
 }
 
@@ -503,10 +532,41 @@ export async function fetchMailbox(familyId: string): Promise<MailboxResponse> {
     supabase.from('mailbox_letters').select('*, sender:users!mailbox_letters_author_id_fkey(display_name, avatar_url)').eq('family_id', familyId).eq('recipient_id', userId).order('created_at', { ascending: false }),
     supabase.from('mailbox_letters').select('*, recipient:users!mailbox_letters_recipient_id_fkey(display_name, avatar_url)').eq('family_id', familyId).eq('author_id', userId).order('created_at', { ascending: false }),
   ]);
+  const CONDITION_LABELS: Record<string, string> = {
+    anytime: 'Open anytime',
+    bad_day: 'Open when you are having a bad day',
+    birthday: 'Open on your birthday',
+    after_exams: 'Open after your exams',
+    custom: 'Open when ready',
+  };
   const mapLetter = (row: Record<string, unknown>, isInbox: boolean): MailboxLetter => {
     const s = (row.sender ?? {}) as Record<string, unknown>;
     const rec = (row.recipient ?? {}) as Record<string, unknown>;
-    return { id: String(row.id), title: String(row.title), body: row.body as string, openCondition: row.open_condition as MailboxOpenCondition, openConditionText: row.open_condition_text as string | undefined, isOpened: Boolean(row.is_opened), isForMe: isInbox, isFromMe: !isInbox, authorName: s.display_name as string | undefined, authorAvatar: resolveMediaUrl(s.avatar_url as string | undefined), recipientName: rec.display_name as string | undefined, recipientAvatar: resolveMediaUrl(rec.avatar_url as string | undefined), authorId: row.author_id as string | undefined, recipientId: row.recipient_id as string | undefined, createdAt: row.created_at as string | undefined, openedAt: row.opened_at as string | undefined };
+    const cond = row.open_condition as MailboxOpenCondition;
+    const isOpened = Boolean(row.is_opened);
+    const condLabel = cond === 'custom'
+      ? (row.open_condition_text as string | undefined) ?? 'Custom condition'
+      : CONDITION_LABELS[cond] ?? cond;
+    return {
+      id: String(row.id),
+      title: String(row.title),
+      body: row.body as string,
+      openCondition: cond,
+      openConditionLabel: condLabel,
+      openConditionText: row.open_condition_text as string | undefined,
+      isOpened,
+      isSealed: isInbox && !isOpened,
+      isForMe: isInbox,
+      isFromMe: !isInbox,
+      authorName: s.display_name as string | undefined,
+      authorAvatar: resolveMediaUrl(s.avatar_url as string | undefined),
+      recipientName: rec.display_name as string | undefined,
+      recipientAvatar: resolveMediaUrl(rec.avatar_url as string | undefined),
+      authorId: row.author_id as string | undefined,
+      recipientId: row.recipient_id as string | undefined,
+      createdAt: row.created_at as string | undefined,
+      openedAt: row.opened_at as string | undefined,
+    };
   };
   return { inbox: (inRes.data ?? []).map((l) => mapLetter(l as Record<string, unknown>, true)), sent: (outRes.data ?? []).map((l) => mapLetter(l as Record<string, unknown>, false)) };
 }
@@ -612,4 +672,6 @@ export async function generatePodcastEpisode(familyId: string): Promise<PodcastE
 
 // Re-export for backward compat
 export { addFamilyMember } from './auth.service';
+
+
 

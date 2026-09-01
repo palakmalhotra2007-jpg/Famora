@@ -1,5 +1,16 @@
+/**
+ * Authentication & family-membership service.
+ *
+ * All auth operations go through Supabase Auth.  After a successful sign-in
+ * the user's public profile row is read from `public.users` (created by the
+ * `handle_new_auth_user` DB trigger on first signup).
+ *
+ * Family operations (create / join / add member) are plain Supabase table
+ * writes — no backend server is involved.
+ */
+
 import { supabase } from '../lib/supabase';
-import { dbInsert, dbInsertMany, dbUpdate, dbUpsert } from '../lib/db';
+import { dbInsert, dbInsertMany, dbUpdate } from '../lib/db';
 import type { Database } from '../lib/database.types';
 import type { Family, User } from '../types';
 import type { FamilyAuraId } from '../constants/aura';

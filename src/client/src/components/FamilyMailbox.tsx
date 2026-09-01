@@ -6,7 +6,6 @@ import {
   Pressable,
   TextInput,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,6 +21,7 @@ import {
   openMailboxLetter,
   fetchHomeDashboard,
 } from '../services/family.service';
+import { showAlert } from '../utils/alert';
 import { MailboxLetter, MailboxOpenCondition } from '../types';
 
 const OPEN_CONDITIONS: { value: MailboxOpenCondition; label: string }[] = [
@@ -60,6 +60,8 @@ export function FamilyMailbox({ familyId }: FamilyMailboxProps) {
   });
 
   const members = (home?.members ?? []).filter((m) => m.id !== userId);
+  // If home dashboard hasn't loaded yet, show all members from mailbox participants
+  const recipientOptions = members.length > 0 ? members : [];
 
   const resetCompose = () => {
     setRecipientId(null);
@@ -72,7 +74,7 @@ export function FamilyMailbox({ familyId }: FamilyMailboxProps) {
 
   const handleSend = async () => {
     if (!recipientId || !title.trim() || !body.trim()) {
-      Alert.alert('Missing fields', 'Choose a recipient, title, and letter body.');
+      showAlert('Missing fields', 'Choose a recipient, title, and letter body.');
       return;
     }
     setSaving(true);
@@ -86,9 +88,8 @@ export function FamilyMailbox({ familyId }: FamilyMailboxProps) {
       });
       await queryClient.invalidateQueries({ queryKey: ['mailbox', familyId] });
       resetCompose();
-      Alert.alert('Sent', 'Your letter is in their mailbox.');
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not send letter');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not send letter');
     } finally {
       setSaving(false);
     }
@@ -100,7 +101,7 @@ export function FamilyMailbox({ familyId }: FamilyMailboxProps) {
       await openMailboxLetter(familyId, letter.id);
       await queryClient.invalidateQueries({ queryKey: ['mailbox', familyId] });
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not open letter');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not open letter');
     } finally {
       setOpeningId(null);
     }
@@ -146,23 +147,29 @@ export function FamilyMailbox({ familyId }: FamilyMailboxProps) {
       <ScrollView contentContainerStyle={styles.compose}>
         <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Send to</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {members.map((member) => (
-            <Pressable
-              key={member.id}
-              onPress={() => setRecipientId(member.id)}
-              style={[
-                styles.memberChip,
-                {
-                  borderColor: recipientId === member.id ? theme.primary : theme.border,
-                  backgroundColor: recipientId === member.id ? theme.primary + '12' : theme.surface,
-                },
-              ]}
-            >
-              <Text style={{ color: recipientId === member.id ? theme.primary : theme.text }}>
-                {member.displayName}
-              </Text>
-            </Pressable>
-          ))}
+          {recipientOptions.length === 0 ? (
+            <Text style={[styles.noMembers, { color: theme.textTertiary }]}>
+              Add family members first (Family → Add Member).
+            </Text>
+          ) : (
+            recipientOptions.map((member) => (
+              <Pressable
+                key={member.id}
+                onPress={() => setRecipientId(member.id)}
+                style={[
+                  styles.memberChip,
+                  {
+                    borderColor: recipientId === member.id ? theme.primary : theme.border,
+                    backgroundColor: recipientId === member.id ? theme.primary + '12' : theme.surface,
+                  },
+                ]}
+              >
+                <Text style={{ color: recipientId === member.id ? theme.primary : theme.text }}>
+                  {member.displayName}
+                </Text>
+              </Pressable>
+            ))
+          )}
         </ScrollView>
 
         <TextInput
@@ -283,6 +290,7 @@ const styles = StyleSheet.create({
   compose: { gap: spacing.sm, paddingBottom: spacing.lg },
   sectionLabel: { ...typography.label, marginTop: spacing.sm },
   chipRow: { marginBottom: spacing.sm },
+  noMembers: { ...typography.caption, marginBottom: spacing.sm, fontStyle: 'italic' },
   memberChip: {
     borderWidth: 1,
     borderRadius: borderRadius.full,

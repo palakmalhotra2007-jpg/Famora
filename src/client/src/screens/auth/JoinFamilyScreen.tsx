@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Text, StyleSheet, Pressable, Alert } from 'react-native';
+﻿import React, { useState } from 'react';
+import { Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthLayout, AuthField, AuthButton } from '../../components/AuthLayout';
@@ -8,6 +8,7 @@ import { joinFamily, login, fetchFamilies } from '../../services/auth.service';
 import { useAuthStore, useFamilyStore } from '../../store';
 import { typography } from '../../theme';
 import { authColors } from '../../theme/auth';
+import { showAlert } from '../../utils/alert';
 
 export function JoinFamilyScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -22,7 +23,7 @@ export function JoinFamilyScreen() {
 
   const handleJoin = async () => {
     if (!inviteCode.trim()) {
-      Alert.alert('Invite code required', 'Enter the code shared by your family.');
+      showAlert('Invite code required', 'Enter the code shared by your family.');
       return;
     }
 
@@ -30,7 +31,7 @@ export function JoinFamilyScreen() {
     try {
       if (!isAuthenticated) {
         if (!email.trim() || !password) {
-          Alert.alert('Sign in first', 'Enter your email and password to join.');
+          showAlert('Sign in first', 'Enter your email and password to join.');
           setLoading(false);
           return;
         }
@@ -43,7 +44,7 @@ export function JoinFamilyScreen() {
       const families = await fetchFamilies();
       setFamilies(families);
     } catch (error) {
-      Alert.alert(
+      showAlert(
         'Could not join',
         error instanceof Error ? error.message : 'Invalid invite code or credentials'
       );
@@ -68,7 +69,7 @@ export function JoinFamilyScreen() {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             secureTextEntry
           />
         </>
@@ -97,3 +98,5 @@ const styles = StyleSheet.create({
     color: authColors.primary,
   },
 });
+
+

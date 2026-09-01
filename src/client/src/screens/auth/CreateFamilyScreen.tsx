@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,9 +32,7 @@ export function CreateFamilyScreen() {
       setCurrentFamily(family);
       setFamilies([family]);
     } catch (err) {
-      // Show full error on screen so we can see what's happening
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[CreateFamily] error:', msg);
       setError(msg);
     } finally {
       setLoading(false);
@@ -62,7 +60,7 @@ export function CreateFamilyScreen() {
       </Text>
       <AuthButton label="Create Family" onPress={handleCreate} loading={loading} />
       <Pressable onPress={() => navigation.navigate('JoinFamily')}>
-        <Text style={styles.link}>Have an invite code? Join a family →</Text>
+        <Text style={styles.link}>Have an invite code? Join a family â†’</Text>
       </Pressable>
     </AuthLayout>
   );
@@ -78,3 +76,4 @@ const styles = StyleSheet.create({
     color: authColors.primary,
   },
 });
+

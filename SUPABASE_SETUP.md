@@ -1,98 +1,128 @@
 # Famora — Supabase Setup Guide
 
-Famora now runs **entirely on Supabase** — no separate backend server needed.
+Everything in this app runs through Supabase — no separate backend required for the client.
 
 ---
 
 ## 1. Create a Supabase project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project.
-2. Note your **Project URL** and **anon public key** from  
-   `Project Settings → API`.
+2. Choose a region close to your users.
+3. Note down the **Project URL** and **anon public key** from  
+   **Project Settings → API**.
 
 ---
 
-## 2. Run the database schema
+## 2. Run the database migration
 
-1. Open the **SQL Editor** in your Supabase dashboard.
-2. Copy the contents of `supabase/migrations/001_initial_schema.sql`.
-3. Paste and click **Run**.
+Open the Supabase **SQL Editor** and paste the entire contents of:
 
-This creates all tables, row-level security policies, and storage buckets.
-
----
-
-## 3. Configure the app
-
-Copy `src/client/.env.example` to `src/client/.env` and fill in your values:
-
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
+supabase/migrations/001_initial_schema.sql
 ```
 
-The anon key is safe to expose — all data access is controlled by RLS policies.
+Click **Run**. This will create:
+
+- All 23 tables with correct columns, types, and foreign keys
+- Indexes for performance-critical queries
+- `updated_at` auto-update triggers
+- A trigger that automatically creates a `public.users` row when a user registers via Supabase Auth
+- Row Level Security enabled on every table with least-privilege policies
+- Storage buckets: `media` (photos/videos), `audio` (voice notes), `avatars` (profile pictures)
+- Storage access policies (authenticated upload, public read)
 
 ---
 
-## 4. Supabase Auth settings
+## 3. Configure the client environment
 
-In your Supabase dashboard under **Authentication → Settings**:
+Edit `src/client/.env` and fill in your credentials:
 
-- **Email confirmations** — disable for development, enable for production.
-- **Site URL** — set to your app's URL / deep link scheme.
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+```
 
----
+Both values are in **Supabase Dashboard → Project Settings → API**.
 
-## 5. Storage buckets
-
-The SQL migration creates three public buckets automatically:
-
-| Bucket   | Purpose                          |
-|----------|----------------------------------|
-| `media`  | Photos, post images              |
-| `audio`  | Voice notes                      |
-| `avatars`| Profile pictures                 |
+> The anon key is safe to include in the app — it's restricted by your RLS policies.
 
 ---
 
-## 6. Run the app
+## 4. Enable Email Auth
+
+In Supabase Dashboard:
+
+1. Go to **Authentication → Providers**
+2. Ensure **Email** is enabled
+3. (Optional) Disable "Confirm email" during development so users can log in immediately without email verification:  
+   **Authentication → Email Templates → Confirm signup → toggle off "Enable email confirmations"**
+
+---
+
+## 5. Run the app
 
 ```bash
 cd src/client
 npm install
-npx expo start
+npm run dev        # Expo dev server
+# or
+npm run web        # browser
 ```
 
 ---
 
-## Optional: AI features (Newspaper & Assistant)
+## Storage buckets summary
 
-Full AI features (newspaper generation, family assistant) require a  
-**Supabase Edge Function** that calls OpenAI. Until then:
+| Bucket   | Used for                        | Max file size |
+|----------|---------------------------------|---------------|
+| `media`  | Post photos, story images/video | 50 MB         |
+| `audio`  | Voice notes (podcast feature)   | 50 MB         |
+| `avatars`| Profile pictures                | 10 MB         |
 
-- The Newspaper screen shows content stored directly in the `newspapers` table.
-- The Assistant screen stores messages but replies with a placeholder.
-
-To add full AI, deploy an Edge Function that reads from the DB, calls  
-OpenAI, and writes the response back. See the Supabase Edge Functions docs:  
-https://supabase.com/docs/guides/functions
+Files are stored at paths like `<user-id>/<timestamp>_<filename>` so RLS  
+"owner can delete" policies work by checking the first folder segment.
 
 ---
 
 ## Architecture overview
 
 ```
-React Native (Expo) app
-        │
-        ▼
-@supabase/supabase-js
-        │
-   ┌────┴────┐
-   │ Auth    │  signUp / signInWithPassword / onAuthStateChange
-   │ DB      │  postgres via PostgREST (typed queries)
-   │ Storage │  media, audio, avatars
-   └─────────┘
-        │
-   Supabase (hosted Postgres + Auth + Storage + Realtime)
+Expo app (React Native)
+    └── @supabase/supabase-js
+         ├── supabase.auth.*          → Authentication (email/password)
+         ├── supabase.from(table).*   → All data reads and writes
+         └── supabase.storage.*       → Media uploads
 ```
+
+The Express backend (`/backend`) is **not required** by the client. It exists  
+as an optional server-side layer (AI newspaper generation, podcast scripts, etc.)  
+and can be run independently if those features are needed.
+
+---
+
+## Troubleshooting
+
+**"Missing Supabase env vars" error on startup**  
+→ Make sure `src/client/.env` exists and both `EXPO_PUBLIC_SUPABASE_URL` and  
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` are filled in with real values (not placeholders).
+
+**"new row violates row-level security policy" error**  
+→ You're trying to insert data as an unauthenticated user, or the RLS policy  
+is blocking an operation. Check that the user is signed in and is a member of  
+the family they're writing to.
+
+**Joining a family fails with "invalid invite code"**  
+→ The `families` table uses an exact uppercase match on `invite_code`. Make  
+sure the code is entered in uppercase or the client is calling `.toUpperCase()`  
+before the query (it does — see `auth.service.ts: joinFamily`).
+
+**Foreign key join errors in Supabase queries (e.g. `posts_author_id_fkey`)**  
+→ These FK names are auto-generated by Postgres from the column name. They only  
+exist if the migration ran successfully. Re-run the migration SQL if you see  
+"relationship ... does not exist" errors.
+
+**Users profile not created after registration**  
+→ The `handle_new_auth_user` trigger creates the `public.users` row automatically.  
+The client also upserts it as a fallback (`auth.service.ts: register`). If the  
+profile still doesn't appear, check that the migration ran the trigger creation  
+block successfully.

@@ -239,7 +239,7 @@ router.post('/families/:familyId/members', authenticate, async (req: Request, re
     let targetUser = await User.findOne({ email: cleanEmail });
 
     if (!targetUser) {
-      const passwordHash = await hashPassword('famora123');
+      const passwordHash = await bcrypt.hash('famora123', 12);
       targetUser = await User.create({
         email: cleanEmail,
         passwordHash,

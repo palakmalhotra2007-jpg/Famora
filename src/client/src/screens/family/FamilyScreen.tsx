@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { showAlert } from '../../utils/alert';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../hooks/useTheme';
@@ -101,7 +103,7 @@ export function FamilyScreen() {
       await queryClient.invalidateQueries({ queryKey: ['bucketList', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
     } catch (e) {
-      Alert.alert('Error', 'Could not save bucket list goal');
+      showAlert('Error', 'Could not save bucket list goal');
     } finally {
       setAddingDream(false);
     }
@@ -154,7 +156,7 @@ export function FamilyScreen() {
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
     } catch (e) {
-      Alert.alert('Error', 'Could not update location sharing setting.');
+      showAlert('Error', 'Could not update location sharing setting.');
     } finally {
       setUpdatingLocationSharing(false);
     }
@@ -179,7 +181,7 @@ export function FamilyScreen() {
               resolve();
             },
             () => {
-              Alert.alert('Location Access', 'Please allow location permission in your browser.');
+              window.alert('Please allow location permission in your browser.');
               resolve();
             },
             { enableHighAccuracy: true, timeout: 15000 }
@@ -200,7 +202,7 @@ export function FamilyScreen() {
         }
       }
     } catch (e) {
-      Alert.alert('GPS Error', 'Could not retrieve current location.');
+      showAlert('GPS Error', 'Could not retrieve current location.');
     } finally {
       setRefreshingGPS(false);
     }
@@ -235,7 +237,7 @@ export function FamilyScreen() {
       setActiveSessionId(session.id);
       await queryClient.invalidateQueries({ queryKey: ['gameSessions', familyId] });
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not start game');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not start game');
     } finally {
       setStartingGame(false);
     }
@@ -320,11 +322,11 @@ export function FamilyScreen() {
           ) : (
             <>
               <View style={[styles.gamesBanner, { backgroundColor: authColors.primary + '12', borderColor: authColors.primary + '30' }]}>
-                <Text style={styles.gamesBannerEmoji}>🎮</Text>
+                <Text style={styles.gamesBannerEmoji}>ðŸŽ®</Text>
                 <View style={styles.gamesBannerText}>
                   <Text style={[styles.gamesBannerTitle, { color: theme.text }]}>Family game night</Text>
                   <Text style={[styles.gamesBannerSub, { color: theme.textSecondary }]}>
-                    Quick, playful challenges everyone can enjoy — kids, parents & grandparents.
+                    Quick, playful challenges everyone can enjoy â€” kids, parents & grandparents.
                   </Text>
                 </View>
               </View>
@@ -351,7 +353,7 @@ export function FamilyScreen() {
                           <Text style={[styles.resumeTitle, { color: theme.text }]}>{meta.name}</Text>
                           <Text style={[styles.resumeSub, { color: theme.textSecondary }]}>
                             {session.leaderName
-                              ? `${session.leaderName} leads · ${session.leaderScore} ${scoreLabel(mode)}`
+                              ? `${session.leaderName} leads Â· ${session.leaderScore} ${scoreLabel(mode)}`
                               : 'Be the first to play!'}
                           </Text>
                         </View>
@@ -387,16 +389,16 @@ export function FamilyScreen() {
                     <Text style={[styles.gameName, { color: theme.text }]} numberOfLines={2}>
                       {game.name}
                     </Text>
-                    <Text style={[styles.gameCategory, { color: theme.textTertiary }]}>{game.category} · {game.ages}</Text>
+                    <Text style={[styles.gameCategory, { color: theme.textTertiary }]}>{game.category} Â· {game.ages}</Text>
                     <Text style={[styles.gameDesc, { color: theme.textSecondary }]} numberOfLines={2}>
                       {game.description}
                     </Text>
                     {active?.leaderName ? (
                       <Text style={[styles.leaderHint, { color: authColors.primaryDark }]} numberOfLines={2}>
-                        🏆 Beat {active.leaderName}: {active.leaderScore} {scoreLabel(mode)}
+                        ðŸ† Beat {active.leaderName}: {active.leaderScore} {scoreLabel(mode)}
                       </Text>
                     ) : (
-                      <Text style={[styles.playHint, { color: authColors.primary }]}>Tap to play →</Text>
+                      <Text style={[styles.playHint, { color: authColors.primary }]}>Tap to play â†’</Text>
                     )}
                   </Pressable>
                 );
@@ -468,7 +470,7 @@ export function FamilyScreen() {
                   <Text style={[styles.locationStatValue, { color: theme.primary }]}>
                     {memberLocations?.auraCount ?? 0}
                   </Text>
-                  <Text style={[styles.locationStatLabel, { color: theme.textSecondary }]}>With aura 🌈</Text>
+                  <Text style={[styles.locationStatLabel, { color: theme.textSecondary }]}>With aura ðŸŒˆ</Text>
                 </View>
               </View>
 
@@ -729,3 +731,5 @@ const styles = StyleSheet.create({
   achievementTitle: { ...typography.body, fontWeight: '600' },
   achievementDesc: { ...typography.caption, marginTop: 2 },
 });
+
+

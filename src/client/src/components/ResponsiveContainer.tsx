@@ -10,18 +10,19 @@ interface ResponsiveContainerProps {
 }
 
 export function ResponsiveContainer({ children, style, fill = true }: ResponsiveContainerProps) {
-  const { contentMaxWidth, horizontalPadding, isWide } = useResponsive();
+  const { contentMaxWidth, horizontalPadding, isWide, isWeb } = useResponsive();
 
   return (
-    <View style={[styles.outer, isWide && styles.outerWide]}>
+    <View style={[styles.outer, (isWeb && isWide) && styles.outerWeb]}>
       <View
         style={[
           styles.inner,
           fill && styles.fill,
           {
             maxWidth: contentMaxWidth,
+            width: '100%',
             paddingHorizontal: horizontalPadding,
-            alignSelf: 'stretch',
+            alignSelf: 'center',
           },
           style,
         ]}
@@ -37,8 +38,9 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  outerWide: {
-    alignSelf: 'center',
+  outerWeb: {
+    alignItems: 'center',
+    alignSelf: 'center' as const,
   },
   inner: {
     width: '100%',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { showAlert } from '../utils/alert';
 import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../hooks/useTheme';
 import { useQueryClient } from '@tanstack/react-query';
@@ -57,7 +58,7 @@ export function AddMemberModal({
 
   const handleAddDirect = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Name required', 'Please enter a name for this family member.');
+      showAlert('Name required', 'Please enter a name for this family member.');
       return;
     }
     setSubmitting(true);
@@ -71,17 +72,12 @@ export function AddMemberModal({
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['podcastStatus', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['me'] });
-
-      Alert.alert(
-        'Member Added! 🎉',
-        `${displayName.trim()} is now part of ${familyName || 'your family'}.`
-      );
       setDisplayName('');
       setEmail('');
       setRole('Member');
       onClose();
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Could not add family member');
+      showAlert('Error', err instanceof Error ? err.message : 'Could not add family member');
     } finally {
       setSubmitting(false);
     }
@@ -348,3 +344,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
+

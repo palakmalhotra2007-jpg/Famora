@@ -4,7 +4,6 @@ import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { spacing, borderRadius, typography } from '../theme';
-import { useAuthStore } from '../store';
 import { uploadAudio } from '../services/family.service';
 
 interface VoiceNoteRecorderProps {
@@ -14,7 +13,6 @@ interface VoiceNoteRecorderProps {
 
 export function VoiceNoteRecorder({ onRecorded, caption }: VoiceNoteRecorderProps) {
   const theme = useTheme();
-  const token = useAuthStore((s) => s.accessToken);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const [permissionOk, setPermissionOk] = useState<boolean | null>(null);
   const [recording, setRecording] = useState(false);
@@ -52,7 +50,7 @@ export function VoiceNoteRecorder({ onRecorded, caption }: VoiceNoteRecorderProp
 
   const stopRecording = async () => {
     const rec = recordingRef.current;
-    if (!rec || !token) return;
+    if (!rec) return;
 
     setRecording(false);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -60,12 +58,11 @@ export function VoiceNoteRecorder({ onRecorded, caption }: VoiceNoteRecorderProp
     await rec.stopAndUnloadAsync();
     const uri = rec.getURI();
     recordingRef.current = null;
-
     if (!uri) return;
 
     setUploading(true);
     try {
-      const url = await uploadAudio(uri, token);
+      const url = await uploadAudio(uri);
       await onRecorded({ audioUrl: url, durationSec: Math.max(seconds, 1) });
     } finally {
       setUploading(false);

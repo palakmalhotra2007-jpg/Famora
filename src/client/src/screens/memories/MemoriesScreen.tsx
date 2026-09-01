@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,8 @@ import {
   resolveMediaUrl,
 } from '../../services/family.service';
 import { Post } from '../../types';
+import { showAlert } from '../../utils/alert';
+
 
 export function MemoriesScreen() {
   const theme = useTheme();
@@ -40,7 +42,6 @@ export function MemoriesScreen() {
   const { contentMaxWidth, isWide, isMedium } = useResponsive();
   const family = useFamilyStore((s) => s.currentFamily);
   const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.accessToken);
   const [composerOpen, setComposerOpen] = useState(false);
   const [caption, setCaption] = useState('');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function MemoriesScreen() {
   const openComposer = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission required', 'Allow photo library access to create posts.');
+      showAlert('Permission required', 'Allow photo library access to create posts.');
       return;
     }
 
@@ -91,22 +92,18 @@ export function MemoriesScreen() {
 
   const publishPost = async () => {
     if (!familyId) {
-      Alert.alert('No family', 'Join or create a family before sharing a post.');
-      return;
-    }
-    if (!token) {
-      Alert.alert('Session expired', 'Please log in again.');
+      showAlert('No family', 'Join or create a family before sharing a post.');
       return;
     }
     if (!previewUri) {
-      Alert.alert('No photo selected', 'Please pick a photo first.');
+      showAlert('No photo', 'Please pick a photo first.');
       return;
     }
     if (uploading) return;
 
     setUploading(true);
     try {
-      const url = await uploadImage(previewUri, token);
+      const url = await uploadImage(previewUri);
       await createPost(familyId, {
         caption: caption.trim() || undefined,
         mediaUrls: [url],
@@ -118,7 +115,7 @@ export function MemoriesScreen() {
       await queryClient.invalidateQueries({ queryKey: ['posts', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
     } catch (error) {
-      Alert.alert('Could not publish', error instanceof Error ? error.message : 'Try again');
+      showAlert('Could not publish', error instanceof Error ? error.message : 'Try again');
     } finally {
       setUploading(false);
     }
@@ -166,7 +163,7 @@ export function MemoriesScreen() {
       setNewCommentText('');
       await queryClient.invalidateQueries({ queryKey: ['posts', familyId] });
     } catch (error) {
-      Alert.alert('Error', 'Could not post comment.');
+      showAlert('Error', 'Could not post comment.');
     } finally {
       setSubmittingComment(false);
     }
@@ -593,3 +590,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -23,10 +22,11 @@ import {
   uploadImage,
   resolveMediaUrl,
 } from '../services/family.service';
+import { showAlert } from '../utils/alert';
 
+/** Returns 'morning' before 17:00, 'night' from 17:00 onwards. */
 function currentSlot(): 'morning' | 'night' {
-  const hour = new Date().getHours();
-  return hour >= 5 && hour < 17 ? 'morning' : 'night';
+  return new Date().getHours() < 17 ? 'morning' : 'night';
 }
 
 interface GoodNightWallProps {
@@ -36,7 +36,6 @@ interface GoodNightWallProps {
 export function GoodNightWall({ familyId }: GoodNightWallProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const [slot, setSlot] = useState<'morning' | 'night'>(currentSlot());
   const [message, setMessage] = useState('');
@@ -62,28 +61,19 @@ export function GoodNightWall({ familyId }: GoodNightWallProps) {
 
   const handlePost = async () => {
     if (!message.trim()) {
-      Alert.alert('Add a message', `Write your ${slotLabel.toLowerCase()} message.`);
+      showAlert('Add a message', `Write your ${slotLabel.toLowerCase()} message.`);
       return;
     }
-    if (!token) return;
-
     setPosting(true);
     try {
       let photoUrl: string | undefined;
-      if (photoUri) {
-        photoUrl = await uploadImage(photoUri, token);
-      }
-      await postWallEntry(familyId, {
-        slot,
-        message: message.trim(),
-        photoUrl,
-      });
+      if (photoUri) photoUrl = await uploadImage(photoUri);
+      await postWallEntry(familyId, { slot, message: message.trim(), photoUrl });
       setMessage('');
       setPhotoUri(null);
       await queryClient.invalidateQueries({ queryKey: ['wallTimeline', familyId] });
-      Alert.alert('Posted', `Your ${slotLabel.toLowerCase()} is on the wall.`);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not post');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not post');
     } finally {
       setPosting(false);
     }

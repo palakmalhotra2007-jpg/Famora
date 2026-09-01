@@ -256,8 +256,8 @@ export function NewspaperView({ title, editionDate, sections, familyName, onShar
 
         {sections.length === 0 ? (
           <View style={styles.emptyPaper}>
-            <Text style={styles.emptyHeadline}>NO EDITION TODAY</Text>
-            <Text style={styles.bodyText}>Check back after your family shares photos and events.</Text>
+            <Text style={styles.emptyHeadline}>SILENCE IN THE FAMILY</Text>
+            <Text style={styles.bodyText}>No stories yet today. Share a photo, add an event, or leave a wall message — and check back here.</Text>
           </View>
         ) : (
           <>

@@ -11,6 +11,19 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { supabase } from './src/lib/supabase';
 import { fetchMe, fetchFamilies } from './src/services/auth.service';
 
+// Inject global CSS on web to ensure the app viewport centers content
+// and doesn't bleed off-screen. This runs once at module level.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body, #root { height: 100%; margin: 0; padding: 0; }
+    body { display: flex; justify-content: center; background: #F8FAFC; overflow-x: hidden; }
+    #root { width: 100%; max-width: 100vw; position: relative; }
+    * { box-sizing: border-box; }
+  `;
+  document.head.appendChild(style);
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -126,6 +139,10 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    ...(Platform.OS === 'web' ? { minHeight: '100vh' as unknown as number } : {}),
+    ...(Platform.OS === 'web' ? {
+      minHeight: '100vh' as unknown as number,
+      width: '100%' as unknown as number,
+      overflow: 'hidden' as unknown as number,
+    } : {}),
   },
 });

@@ -1,68 +1,89 @@
 /**
- * Typed Supabase DB helpers.
+ * Typed Supabase database helpers.
  *
- * Supabase v2's strict generic chain can be difficult to satisfy in isolation.
- * These helpers use `any` internally (one safe, contained escape hatch) so
- * that every call site is clean and readable without casting.
+ * Supabase v2's strict generic chain is hard to satisfy cleanly at every
+ * call site.  These four wrappers use `any` in one place internally so
+ * every caller stays readable and type-safe at the boundary.
+ *
+ * Usage:
+ *   const { data, error } = await dbInsert('posts', { family_id, author_id, ... });
  */
 
 import { supabase } from './supabase';
 import type { Database } from './database.types';
 
-type Tables  = Database['public']['Tables'];
-type TName   = keyof Tables;
-type Row<T extends TName>    = Tables[T]['Row'];
-type Insert<T extends TName> = Tables[T]['Insert'];
-type Upd<T extends TName>    = Tables[T]['Update'];
+type Tables           = Database['public']['Tables'];
+type TableName        = keyof Tables;
+type Row<T extends TableName>    = Tables[T]['Row'];
+type InsertRow<T extends TableName> = Tables[T]['Insert'];
+type UpdateRow<T extends TableName> = Tables[T]['Update'];
 
-// ── Typed insert (single row, returns the inserted row) ──────
-export async function dbInsert<T extends TName>(
+// ── Insert a single row, returning it ────────────────────────
+
+export async function dbInsert<T extends TableName>(
   table: T,
-  values: Insert<T>
+  values: InsertRow<T>,
 ): Promise<{ data: Row<T> | null; error: Error | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from(table) as any)
     .insert(values)
     .select('*')
     .maybeSingle();
-  return { data: data as Row<T> | null, error: error ? new Error(String(error.message)) : null };
+
+  return {
+    data:  data as Row<T> | null,
+    error: error ? new Error(String(error.message)) : null,
+  };
 }
 
-// ── Typed insert (many rows, no return) ──────────────────────
-export async function dbInsertMany<T extends TName>(
+// ── Insert multiple rows (no return value needed) ────────────
+
+export async function dbInsertMany<T extends TableName>(
   table: T,
-  values: Insert<T>[]
+  values: InsertRow<T>[],
 ): Promise<{ error: Error | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from(table) as any).insert(values);
   return { error: error ? new Error(String(error.message)) : null };
 }
 
-// ── Typed update (match by column equality) ──────────────────
-export async function dbUpdate<T extends TName>(
+// ── Update rows matching a partial key, returning the first ──
+
+export async function dbUpdate<T extends TableName>(
   table: T,
-  values: Upd<T>,
-  match: Partial<Row<T>>
+  values: UpdateRow<T>,
+  match: Partial<Row<T>>,
 ): Promise<{ data: Row<T> | null; error: Error | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let q = (supabase.from(table) as any).update(values);
-  for (const [k, v] of Object.entries(match as Record<string, unknown>)) {
-    q = q.eq(k, v);
+  let query = (supabase.from(table) as any).update(values);
+
+  for (const [key, value] of Object.entries(match as Record<string, unknown>)) {
+    query = query.eq(key, value);
   }
-  const { data, error } = await q.select('*').maybeSingle();
-  return { data: data as Row<T> | null, error: error ? new Error(String(error.message)) : null };
+
+  const { data, error } = await query.select('*').maybeSingle();
+
+  return {
+    data:  data as Row<T> | null,
+    error: error ? new Error(String(error.message)) : null,
+  };
 }
 
-// ── Typed upsert ─────────────────────────────────────────────
-export async function dbUpsert<T extends TName>(
+// ── Upsert a single row, returning it ────────────────────────
+
+export async function dbUpsert<T extends TableName>(
   table: T,
-  values: Insert<T>,
-  opts?: { onConflict?: string }
+  values: InsertRow<T>,
+  opts?: { onConflict?: string },
 ): Promise<{ data: Row<T> | null; error: Error | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from(table) as any)
     .upsert(values, opts)
     .select('*')
     .maybeSingle();
-  return { data: data as Row<T> | null, error: error ? new Error(String(error.message)) : null };
+
+  return {
+    data:  data as Row<T> | null,
+    error: error ? new Error(String(error.message)) : null,
+  };
 }

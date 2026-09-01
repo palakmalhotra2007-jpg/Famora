@@ -6,24 +6,15 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
-  Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameDay,
-  isSameMonth,
-  isToday,
-  parseISO,
-  startOfMonth,
-  startOfWeek,
-  subMonths,
+  addMonths, eachDayOfInterval, endOfMonth, endOfWeek,
+  format, isSameDay, isSameMonth, isToday, parseISO,
+  startOfMonth, startOfWeek, subMonths,
 } from 'date-fns';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store';
@@ -36,6 +27,7 @@ import {
   fetchEventsInRange,
   rsvpToEvent,
 } from '../services/family.service';
+import { showAlert, confirmAlert } from '../utils/alert';
 import { Event, EventType } from '../types';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -126,7 +118,7 @@ export function FamilyPlanner({ familyId }: FamilyPlannerProps) {
 
   const handleCreateEvent = async () => {
     if (!title.trim()) {
-      Alert.alert('Missing title', 'Enter a title for this event.');
+      showAlert('Missing title', 'Enter a title for this event.');
       return;
     }
 
@@ -144,7 +136,7 @@ export function FamilyPlanner({ familyId }: FamilyPlannerProps) {
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
       resetForm();
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not create event');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not create event');
     } finally {
       setSaving(false);
     }
@@ -155,27 +147,25 @@ export function FamilyPlanner({ familyId }: FamilyPlannerProps) {
       await rsvpToEvent(familyId, eventId, status);
       await queryClient.invalidateQueries({ queryKey: ['plannerEvents', familyId] });
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not update RSVP');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not update RSVP');
     }
   };
 
   const handleDelete = (eventId: string, eventTitle: string) => {
-    Alert.alert('Delete event', `Remove "${eventTitle}" from the family planner?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteFamilyEvent(familyId, eventId);
-            await queryClient.invalidateQueries({ queryKey: ['plannerEvents', familyId] });
-            await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
-          } catch (error) {
-            Alert.alert('Error', error instanceof Error ? error.message : 'Could not delete event');
-          }
-        },
+    confirmAlert(
+      'Delete event',
+      `Remove "${eventTitle}" from the family planner?`,
+      async () => {
+        try {
+          await deleteFamilyEvent(familyId, eventId);
+          await queryClient.invalidateQueries({ queryKey: ['plannerEvents', familyId] });
+          await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
+        } catch (error) {
+          showAlert('Error', error instanceof Error ? error.message : 'Could not delete event');
+        }
       },
-    ]);
+      'Delete',
+    );
   };
 
   const renderEventCard = (event: Event) => {
@@ -347,13 +337,34 @@ export function FamilyPlanner({ familyId }: FamilyPlannerProps) {
               </Pressable>
             ))}
           </ScrollView>
-          <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-            placeholder="Time (HH:MM)"
-            placeholderTextColor={theme.textTertiary}
-            value={time}
-            onChangeText={setTime}
-          />
+          {Platform.OS === 'web' ? (
+            <View style={[styles.input, styles.webTimeWrap, { borderColor: theme.border }]}>
+              <Text style={[styles.webTimeLabel, { color: theme.textSecondary }]}>Time</Text>
+              {/* @ts-ignore — native HTML input, only rendered on web */}
+              <input
+                type="time"
+                value={time}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTime(e.target.value)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: 14,
+                  color: theme.text,
+                  fontFamily: 'inherit',
+                  flex: 1,
+                }}
+              />
+            </View>
+          ) : (
+            <TextInput
+              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              placeholder="Time (HH:MM)"
+              placeholderTextColor={theme.textTertiary}
+              value={time}
+              onChangeText={setTime}
+            />
+          )}
           <TextInput
             style={[styles.input, { color: theme.text, borderColor: theme.border }]}
             placeholder="Location (optional)"
@@ -472,6 +483,8 @@ const styles = StyleSheet.create({
   typeChipText: { ...typography.caption, fontWeight: '600' },
   saveBtn: { borderRadius: borderRadius.md, padding: spacing.sm, alignItems: 'center' },
   saveBtnText: { color: '#FFF', fontWeight: '700' },
+  webTimeWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  webTimeLabel: { ...typography.caption, fontWeight: '600', minWidth: 36 },
   eventCard: { borderWidth: 1, marginBottom: spacing.sm },
   eventHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   typeBadge: { borderRadius: borderRadius.full, paddingHorizontal: spacing.sm, paddingVertical: 2 },

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { fetchMe, setFamilyAura, logout as supabaseLogout } from '../../services
 import type { FamilyAuraId } from '../../constants/aura';
 import { fetchHomeDashboard, fetchAchievements, fetchMemberLocations, setLocationSharing, updateMyLocation } from '../../services/family.service';
 import { useResponsive } from '../../hooks/useResponsive';
+import { showAlert } from '../../utils/alert';
 
 export function ProfileScreen() {
   const theme = useTheme();
@@ -79,7 +80,7 @@ export function ProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', family.id] });
       await queryClient.invalidateQueries({ queryKey: ['home', family.id] });
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not update location sharing');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not update location sharing');
     } finally {
       setUpdatingSharing(false);
     }
@@ -95,7 +96,7 @@ export function ProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: ['home', family.id] });
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', family.id] });
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Could not update aura');
+      showAlert('Error', error instanceof Error ? error.message : 'Could not update aura');
     } finally {
       setUpdatingAura(false);
     }
@@ -212,7 +213,7 @@ export function ProfileScreen() {
             </GlassCard>
             {myLocation?.sharingEnabled && myLocation.latitude != null && (
               <Text style={[styles.hint, { color: theme.textSecondary }]}>
-                Last shared: {myLocation.locationName ?? 'Current location'} ·{' '}
+                Last shared: {myLocation.locationName ?? 'Current location'} Â·{' '}
                 {myLocation.updatedAt ? new Date(myLocation.updatedAt).toLocaleTimeString() : 'Updating...'}
               </Text>
             )}
@@ -224,11 +225,11 @@ export function ProfileScreen() {
         {family ? (
           <View style={[styles.auraSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.auraHeader}>
-              <Text style={styles.auraHeaderEmoji}>🌈</Text>
+              <Text style={styles.auraHeaderEmoji}>ðŸŒˆ</Text>
               <View style={styles.auraHeaderText}>
                 <Text style={[styles.sectionTitleInline, { color: theme.text }]}>Family Aura</Text>
                 <Text style={[styles.auraHint, { color: theme.textSecondary }]}>
-                  Share your vibe — only if you feel like it.
+                  Share your vibe â€” only if you feel like it.
                 </Text>
               </View>
             </View>
@@ -362,3 +363,4 @@ const styles = StyleSheet.create({
   },
   logoutText: { fontWeight: '600', fontSize: 15 },
 });
+
