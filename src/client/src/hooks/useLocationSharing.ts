@@ -33,7 +33,9 @@ export function useLocationSharing(sharingEnabled: boolean): {
 
     try {
       if (Platform.OS === 'web') {
-        if (!navigator.geolocation) return;
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+          throw new Error('Location is not supported by this browser.');
+        }
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
@@ -53,7 +55,7 @@ export function useLocationSharing(sharingEnabled: boolean): {
                 reject(err);
               }
             },
-            () => resolve(),
+            (error) => reject(new Error(error.message || 'Location permission was denied.')),
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
           );
         });
@@ -80,7 +82,7 @@ export function useLocationSharing(sharingEnabled: boolean): {
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
     } catch {
-      // Permission denied or transient GPS errors — fail quietly
+      // The screen-level action reports errors; background refreshes stay quiet.
     } finally {
       runningRef.current = false;
     }

@@ -457,13 +457,20 @@ export async function submitGameScore(_familyId: string, sessionId: string, scor
   const { data: cur, error: fetchErr } = await supabase.from('game_sessions').select('scores').eq('id', sessionId).single();
   if (fetchErr || !cur) throw new Error(fetchErr?.message ?? 'Session not found');
   const prev    = ((cur as Record<string, unknown>).scores as Record<string, number>) ?? {};
-  const updated = { ...prev, [userId]: Math.max(score, prev[userId] ?? 0) };
+  const previousScore = prev[userId] ?? 0;
+  const submittedScore = Math.max(score, previousScore);
+  const updated = { ...prev, [userId]: submittedScore };
   const { data, error } = await dbUpdate('game_sessions', {
     scores: updated as unknown as import('../lib/database.types').Json,
-    status: 'completed', ended_at: new Date().toISOString(),
+    status: 'active', ended_at: null,
   }, { id: sessionId });
   if (error || !data) throw new Error(error?.message ?? 'Failed to submit score');
-  return rowToSession(data as Record<string, unknown>);
+  return {
+    ...rowToSession(data as Record<string, unknown>),
+    yourScore: submittedScore,
+    improved: submittedScore > previousScore,
+    previousScore,
+  };
 }
 
 // â”€â”€ Achievements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -17,6 +17,7 @@ export function TapSprintGame({ durationSeconds, onComplete }: TapSprintProps) {
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [taps, setTaps] = useState(0);
+  const tapsRef = useRef(0);
   const finished = useRef(false);
 
   useEffect(() => {
@@ -35,16 +36,19 @@ export function TapSprintGame({ durationSeconds, onComplete }: TapSprintProps) {
       setPhase('done');
       if (!finished.current) {
         finished.current = true;
-        onComplete(taps);
+        onComplete(tapsRef.current);
       }
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, taps, onComplete]);
+  }, [phase, timeLeft, onComplete]);
 
   const handleTap = () => {
-    if (phase === 'playing') setTaps((n) => n + 1);
+    if (phase === 'playing') {
+      tapsRef.current += 1;
+      setTaps(tapsRef.current);
+    }
   };
 
   return (
@@ -203,6 +207,7 @@ export function QuickMathGame({ durationSeconds, onComplete }: QuickMathProps) {
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [correct, setCorrect] = useState(0);
+  const correctRef = useRef(0);
   const [problem, setProblem] = useState(buildMathProblem);
   const finished = useRef(false);
 
@@ -222,17 +227,20 @@ export function QuickMathGame({ durationSeconds, onComplete }: QuickMathProps) {
       setPhase('done');
       if (!finished.current) {
         finished.current = true;
-        onComplete(correct);
+        onComplete(correctRef.current);
       }
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, correct, onComplete]);
+  }, [phase, timeLeft, onComplete]);
 
   const pickAnswer = (value: number) => {
     if (phase !== 'playing') return;
-    if (value === problem.answer) setCorrect((c) => c + 1);
+    if (value === problem.answer) {
+      correctRef.current += 1;
+      setCorrect(correctRef.current);
+    }
     setProblem(buildMathProblem());
   };
 
@@ -428,6 +436,7 @@ export function BalloonBlitzGame({ durationSeconds, onComplete }: BalloonBlitzPr
   const [countdown, setCountdown] = useState(3);
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [pops, setPops] = useState(0);
+  const popsRef = useRef(0);
   const [balloons, setBalloons] = useState<Balloon[]>([]);
   const finished = useRef(false);
   const idRef = useRef(0);
@@ -448,13 +457,13 @@ export function BalloonBlitzGame({ durationSeconds, onComplete }: BalloonBlitzPr
       setPhase('done');
       if (!finished.current) {
         finished.current = true;
-        onComplete(pops);
+        onComplete(popsRef.current);
       }
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, pops, onComplete]);
+  }, [phase, timeLeft, onComplete]);
 
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -481,7 +490,8 @@ export function BalloonBlitzGame({ durationSeconds, onComplete }: BalloonBlitzPr
 
   const popBalloon = (id: string) => {
     setBalloons((prev) => prev.filter((b) => b.id !== id));
-    setPops((p) => p + 1);
+    popsRef.current += 1;
+    setPops(popsRef.current);
   };
 
   return (
@@ -565,6 +575,7 @@ export function WordChainGame({ durationSeconds, phrases, onComplete }: WordChai
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [wordIndex, setWordIndex] = useState(0);
   const [wordsDone, setWordsDone] = useState(0);
+  const wordsDoneRef = useRef(0);
   const [choices, setChoices] = useState<string[]>([]);
   const [flashWrong, setFlashWrong] = useState(false);
   const finished = useRef(false);
@@ -595,13 +606,13 @@ export function WordChainGame({ durationSeconds, phrases, onComplete }: WordChai
       setPhase('done');
       if (!finished.current) {
         finished.current = true;
-        onComplete(wordsDone);
+        onComplete(wordsDoneRef.current);
       }
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, wordsDone, onComplete]);
+  }, [phase, timeLeft, onComplete]);
 
   const pickWord = (word: string) => {
     if (phase !== 'playing' || !nextWord) return;
@@ -612,7 +623,8 @@ export function WordChainGame({ durationSeconds, phrases, onComplete }: WordChai
     }
 
     const nextWordIndex = wordIndex + 1;
-    setWordsDone((n) => n + 1);
+    wordsDoneRef.current += 1;
+    setWordsDone(wordsDoneRef.current);
 
     if (nextWordIndex >= words.length) {
       setPhraseIndex((i) => i + 1);

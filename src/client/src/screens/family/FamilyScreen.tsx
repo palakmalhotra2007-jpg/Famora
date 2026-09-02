@@ -124,39 +124,42 @@ export function FamilyScreen() {
     if (!familyId) return;
     setUpdatingLocationSharing(true);
     try {
-      await setLocationSharing(familyId, enabled);
       if (enabled) {
         if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              try {
-                await updateMyLocation(familyId, {
-                  latitude: pos.coords.latitude,
-                  longitude: pos.coords.longitude,
-                  accuracy: pos.coords.accuracy ?? undefined,
-                });
-                await queryClient.invalidateQueries({ queryKey: ['memberLocations', familyId] });
-              } catch (e) {}
-            },
-            () => {},
-            { enableHighAccuracy: true, timeout: 15000 }
-          );
+          await new Promise<void>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              async (pos) => {
+                try {
+                  await updateMyLocation(familyId, {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy ?? undefined,
+                  });
+                  resolve();
+                } catch (error) {
+                  reject(error);
+                }
+              },
+              (error) => reject(new Error(error.message || 'Location permission was denied.')),
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+            );
+          });
         } else {
           const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            await updateMyLocation(familyId, {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy ?? undefined,
-            });
-          }
+          if (status !== 'granted') throw new Error('Location permission was denied.');
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          await updateMyLocation(familyId, {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy ?? undefined,
+          });
         }
       }
+      await setLocationSharing(familyId, enabled);
       await queryClient.invalidateQueries({ queryKey: ['memberLocations', familyId] });
       await queryClient.invalidateQueries({ queryKey: ['home', familyId] });
     } catch (e) {
-      showAlert('Error', 'Could not update location sharing setting.');
+      showAlert('Location unavailable', e instanceof Error ? e.message : 'Could not get your location.');
     } finally {
       setUpdatingLocationSharing(false);
     }

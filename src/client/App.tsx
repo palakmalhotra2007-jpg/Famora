@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? {
       minHeight: '100vh' as unknown as number,
       width: '100%' as unknown as number,
-      overflow: 'hidden' as unknown as number,
+      overflow: 'hidden',
     } : {}),
   },
 });
