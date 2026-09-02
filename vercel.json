@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "src/server/dist",
-  "framework": "express"
+  "installCommand": "npm ci --prefix src/client",
+  "buildCommand": "npm run build --prefix src/client",
+  "outputDirectory": "src/client/dist"
 }
