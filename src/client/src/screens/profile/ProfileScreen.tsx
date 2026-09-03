@@ -1,7 +1,8 @@
 ﻿import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Share, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore, useFamilyStore } from '../../store';
@@ -53,6 +54,24 @@ export function ProfileScreen() {
   const myLocation = locations?.members.find((m) => m.isSelf);
   const [updatingSharing, setUpdatingSharing] = useState(false);
   const [updatingAura, setUpdatingAura] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const handleCopyInvite = async () => {
+    if (!family?.inviteCode) return;
+    await Clipboard.setStringAsync(family.inviteCode);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2200);
+  };
+
+  const handleShareInvite = async () => {
+    if (!family?.inviteCode) return;
+    const message = `Join ${family.name} on Famora with invite code: ${family.inviteCode}`;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.share) {
+      await navigator.share({ title: `Join ${family.name}`, text: message });
+      return;
+    }
+    await Share.share({ message });
+  };
 
   const handleToggleSharing = async (enabled: boolean) => {
     if (!family?.id) return;
@@ -147,12 +166,25 @@ export function ProfileScreen() {
                   <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Family</Text>
                   <Text style={[styles.settingValue, { color: theme.text }]}>{family.name}</Text>
                 </GlassCard>
-                <GlassCard style={styles.settingRow}>
-                  <View>
-                    <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Invite code</Text>
-                    <Text style={[styles.inviteCode, { color: theme.primary }]}>{family.inviteCode}</Text>
+                <GlassCard style={{ ...styles.inviteCard, borderColor: theme.primary + '55', backgroundColor: theme.primary + '0D' }}>
+                  <View style={styles.inviteHeader}>
+                    <View>
+                      <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Family invite code</Text>
+                      <Text style={[styles.inviteCode, styles.inviteCodeLarge, { color: theme.primary }]}>{family.inviteCode}</Text>
+                    </View>
+                    <Ionicons name="people-outline" size={26} color={theme.primary} />
                   </View>
-                  <Ionicons name="copy-outline" size={18} color={theme.textTertiary} />
+                  <Text style={[styles.inviteHint, { color: theme.textSecondary }]}>Share this code with family members.</Text>
+                  <View style={styles.inviteActions}>
+                    <Pressable style={[styles.inviteAction, { borderColor: theme.primary }]} onPress={handleCopyInvite}>
+                      <Ionicons name={inviteCopied ? 'checkmark' : 'copy-outline'} size={16} color={theme.primary} />
+                      <Text style={[styles.inviteActionText, { color: theme.primary }]}>{inviteCopied ? 'Copied' : 'Copy code'}</Text>
+                    </Pressable>
+                    <Pressable style={[styles.inviteAction, { backgroundColor: theme.primary }]} onPress={() => void handleShareInvite()}>
+                      <Ionicons name="share-social-outline" size={16} color="#FFF" />
+                      <Text style={[styles.inviteActionText, { color: '#FFF' }]}>Share invite</Text>
+                    </Pressable>
+                  </View>
                 </GlassCard>
                 <GlassCard style={styles.settingRow}>
                   <View style={styles.settingMeta}>
@@ -182,12 +214,25 @@ export function ProfileScreen() {
               <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Family</Text>
               <Text style={[styles.settingValue, { color: theme.text }]}>{family.name}</Text>
             </GlassCard>
-            <GlassCard style={styles.settingRow}>
-              <View>
-                <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Invite code</Text>
-                <Text style={[styles.inviteCode, { color: theme.primary }]}>{family.inviteCode}</Text>
+            <GlassCard style={{ ...styles.inviteCard, borderColor: theme.primary + '55', backgroundColor: theme.primary + '0D' }}>
+              <View style={styles.inviteHeader}>
+                <View>
+                  <Text style={[styles.settingLabel, { color: theme.textSecondary }]}>Family invite code</Text>
+                  <Text style={[styles.inviteCode, styles.inviteCodeLarge, { color: theme.primary }]}>{family.inviteCode}</Text>
+                </View>
+                <Ionicons name="people-outline" size={30} color={theme.primary} />
               </View>
-              <Ionicons name="copy-outline" size={18} color={theme.textTertiary} />
+              <Text style={[styles.inviteHint, { color: theme.textSecondary }]}>Share this code with family members.</Text>
+              <View style={styles.inviteActions}>
+                <Pressable style={[styles.inviteAction, { borderColor: theme.primary }]} onPress={handleCopyInvite}>
+                  <Ionicons name={inviteCopied ? 'checkmark' : 'copy-outline'} size={17} color={theme.primary} />
+                  <Text style={[styles.inviteActionText, { color: theme.primary }]}>{inviteCopied ? 'Copied' : 'Copy code'}</Text>
+                </Pressable>
+                <Pressable style={[styles.inviteAction, { backgroundColor: theme.primary }]} onPress={() => void handleShareInvite()}>
+                  <Ionicons name="share-social-outline" size={17} color="#FFF" />
+                  <Text style={[styles.inviteActionText, { color: '#FFF' }]}>Share invite</Text>
+                </Pressable>
+              </View>
             </GlassCard>
             <Text style={[styles.hint, { color: theme.textSecondary }]}>
               Share this code so members can join your family.
@@ -320,6 +365,13 @@ const styles = StyleSheet.create({
   settingHint: { ...typography.micro, textTransform: 'none', letterSpacing: 0, marginTop: 4 },
   settingValue: { ...typography.body, fontWeight: '600' },
   inviteCode: { ...typography.title, fontSize: 18, marginTop: 4, letterSpacing: 2 },
+  inviteCodeLarge: { fontSize: 28, letterSpacing: 4 },
+  inviteCard: { borderWidth: 1, padding: spacing.md, gap: spacing.sm },
+  inviteHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  inviteHint: { ...typography.caption, textTransform: 'none', letterSpacing: 0 },
+  inviteActions: { flexDirection: 'row', gap: spacing.sm },
+  inviteAction: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: borderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  inviteActionText: { fontWeight: '800', fontSize: 14 },
   hint: { ...typography.caption, marginBottom: spacing.md },
   auraSection: {
     borderWidth: 1,

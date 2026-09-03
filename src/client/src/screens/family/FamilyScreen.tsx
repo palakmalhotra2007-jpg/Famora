@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   Switch,
   Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import * as Location from 'expo-location';
 import { showAlert } from '../../utils/alert';
 
@@ -58,6 +60,7 @@ export function FamilyScreen() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startingGame, setStartingGame] = useState(false);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const familyId = family?.id;
   const userId = useAuthStore((s) => s.user?.id);
@@ -250,6 +253,23 @@ export function FamilyScreen() {
     setActiveSessionId(sessionId);
   };
 
+  const handleCopyInvite = async () => {
+    if (!family?.inviteCode) return;
+    await Clipboard.setStringAsync(family.inviteCode);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2200);
+  };
+
+  const handleShareInvite = async () => {
+    if (!family?.inviteCode) return;
+    const message = `Join ${family.name} on Famora with invite code: ${family.inviteCode}`;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.share) {
+      await navigator.share({ title: `Join ${family.name}`, text: message });
+      return;
+    }
+    await Share.share({ message });
+  };
+
   const handleCloseGame = () => {
     setActiveSessionId(null);
     if (familyId) {
@@ -319,6 +339,32 @@ export function FamilyScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ResponsiveContainer style={styles.page}>
+        <View style={[styles.invitePanel, { backgroundColor: authColors.primary, borderColor: authColors.primary }]}>
+          <View style={styles.invitePanelTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.invitePanelLabel}>Invite your family</Text>
+              <Text style={styles.invitePanelHint}>Share this code so members can join {family.name}.</Text>
+            </View>
+            <Ionicons name="people" size={30} color="#FFF" />
+          </View>
+          <View style={styles.inviteCodeRow}>
+            <Text style={styles.invitePanelCode}>{family.inviteCode}</Text>
+            <Pressable style={styles.inviteCopyButton} onPress={handleCopyInvite}>
+              <Ionicons name={inviteCopied ? 'checkmark' : 'copy-outline'} size={17} color={authColors.primary} />
+              <Text style={styles.inviteCopyText}>{inviteCopied ? 'Copied' : 'Copy code'}</Text>
+            </Pressable>
+          </View>
+          <View style={styles.invitePanelActions}>
+            <Pressable style={styles.inviteShareButton} onPress={() => void handleShareInvite()}>
+              <Ionicons name="share-social-outline" size={17} color={authColors.primary} />
+              <Text style={styles.inviteShareText}>Share invite</Text>
+            </Pressable>
+            <Pressable style={styles.inviteAddButton} onPress={() => setAddMemberOpen(true)}>
+              <Ionicons name="person-add-outline" size={17} color="#FFF" />
+              <Text style={styles.inviteAddText}>Add member</Text>
+            </Pressable>
+          </View>
+        </View>
         {activeTab === 'games' &&
           (gamesLoading ? (
             <ActivityIndicator color={theme.primary} />
@@ -610,6 +656,19 @@ const styles = StyleSheet.create({
   tabLabel: { ...typography.caption, fontWeight: '600' },
   content: { paddingBottom: 100 },
   page: { paddingTop: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
+  invitePanel: { borderRadius: borderRadius.lg, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
+  invitePanelTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  invitePanelLabel: { color: '#FFF', fontSize: 20, fontWeight: '800' },
+  invitePanelHint: { color: 'rgba(255,255,255,0.86)', fontSize: 13, lineHeight: 18, marginTop: 3 },
+  inviteCodeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  invitePanelCode: { color: '#FFF', fontSize: 30, fontWeight: '900', letterSpacing: 5 },
+  inviteCopyButton: { backgroundColor: '#FFF', borderRadius: borderRadius.md, minHeight: 42, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  inviteCopyText: { color: authColors.primary, fontWeight: '800', fontSize: 14 },
+  invitePanelActions: { flexDirection: 'row', gap: spacing.sm },
+  inviteShareButton: { flex: 1, minHeight: 44, backgroundColor: '#FFF', borderRadius: borderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  inviteShareText: { color: authColors.primary, fontWeight: '800', fontSize: 14 },
+  inviteAddButton: { flex: 1, minHeight: 44, borderColor: 'rgba(255,255,255,0.8)', borderWidth: 1, borderRadius: borderRadius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  inviteAddText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
   sectionLabel: { ...typography.label, marginBottom: spacing.sm, marginTop: spacing.xs, color: '#64748B' },
   gamesBanner: {
     flexDirection: 'row',
