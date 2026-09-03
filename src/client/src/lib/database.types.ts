@@ -881,7 +881,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      join_family_by_code: {
+        Args: {
+          code: string
+        }
+        Returns: Database['public']['Tables']['families']['Row'][]
+      }
     }
     Enums: {
       [_ in never]: never

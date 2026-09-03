@@ -160,21 +160,13 @@ export async function joinFamily(inviteCode: string): Promise<Family> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: family, error: findErr } = await supabase
-    .from('families').select('*').eq('invite_code', inviteCode.toUpperCase()).single();
+  const { data, error: findErr } = await supabase.rpc('join_family_by_code', {
+    code: inviteCode.toUpperCase(),
+  });
+  const family = (data as FamilyRow[] | null)?.[0];
   if (findErr || !family) throw new Error('Invalid invite code');
 
-  const { error: memberErr } = await dbInsertMany('family_members', [{
-    family_id: (family as FamilyRow).id,
-    user_id: user.id,
-    role: 'member',
-  }]);
-  if (memberErr) {
-    if (memberErr.message.includes('23505')) throw new Error('Already a member of this family');
-    throw new Error(memberErr.message);
-  }
-
-  return mapDbFamily(family as FamilyRow, { role: 'member' });
+  return mapDbFamily(family, { role: 'member' });
 }
 
 export async function addFamilyMember(
@@ -188,20 +180,10 @@ export async function addFamilyMember(
   const { data: existing } = await supabase
     .from('users').select('id').eq('email', cleanEmail).maybeSingle();
 
-  let userId: string;
-
-  if (existing) {
-    userId = (existing as { id: string }).id;
-  } else {
-    const { data: newUser, error: userErr } = await dbInsert('users', {
-      id: crypto.randomUUID(),
-      display_name: cleanName,
-      email: cleanEmail,
-      auth_provider: 'invite',
-    });
-    if (userErr || !newUser) throw new Error(userErr?.message ?? 'Failed to create member');
-    userId = (newUser as { id: string }).id;
+  if (!existing) {
+    throw new Error('Ask this person to register first, then share the family invite code.');
   }
+  const userId = (existing as { id: string }).id;
 
   const { error: memberErr } = await dbInsertMany('family_members', [{
     family_id: familyId,

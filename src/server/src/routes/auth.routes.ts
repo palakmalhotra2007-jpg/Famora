@@ -230,6 +230,11 @@ router.post('/families/:familyId/members', authenticate, async (req: Request, re
     const family = await Family.findById(familyId);
     if (!family) throw new AppError(404, 'Family not found');
 
+    const requester = await FamilyMember.findOne({ familyId: family._id, userId: req.user!.userId });
+    if (!requester || requester.role !== 'admin') {
+      throw new AppError(403, 'Only family admins can add members');
+    }
+
     const cleanName = displayName.trim();
     const cleanEmail =
       email && email.trim()
@@ -239,13 +244,7 @@ router.post('/families/:familyId/members', authenticate, async (req: Request, re
     let targetUser = await User.findOne({ email: cleanEmail });
 
     if (!targetUser) {
-      const passwordHash = await bcrypt.hash('famora123', 12);
-      targetUser = await User.create({
-        email: cleanEmail,
-        passwordHash,
-        displayName: cleanName,
-        authProvider: 'email',
-      });
+      throw new AppError(404, 'Member must register first, then join with the family invite code');
     }
 
     const existing = await FamilyMember.findOne({

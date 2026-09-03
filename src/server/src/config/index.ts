@@ -2,8 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-function requireEnv(key: string, fallback?: string): string {
-  const value = process.env[key] ?? fallback;
+function requireEnv(key: string): string {
+  const value = process.env[key];
   if (!value) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
@@ -12,7 +12,10 @@ function requireEnv(key: string, fallback?: string): string {
 
 function parseCorsOrigin(value?: string): string | string[] {
   if (!value) {
-    return '*';
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Missing required environment variable: CORS_ORIGIN');
+    }
+    return 'http://localhost:8081';
   }
 
   const origins = value
@@ -20,17 +23,20 @@ function parseCorsOrigin(value?: string): string | string[] {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  return origins.length === 0 ? '*' : origins.length === 1 ? origins[0] : origins;
+  if (origins.includes('*') && process.env.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN must not be * in production');
+  }
+  return origins.length === 0 ? 'http://localhost:8081' : origins.length === 1 ? origins[0] : origins;
 }
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3001', 10),
   apiVersion: process.env.API_VERSION ?? 'v1',
-  mongodbUri: requireEnv('MONGODB_URI', 'mongodb://localhost:27017/homehub'),
+  mongodbUri: requireEnv('MONGODB_URI'),
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
   jwt: {
-    secret: requireEnv('JWT_SECRET', 'dev-secret-change-in-production'),
+    secret: requireEnv('JWT_SECRET'),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
   },

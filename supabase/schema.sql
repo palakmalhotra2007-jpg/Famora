@@ -469,11 +469,11 @@ create trigger on_auth_user_created
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
-  ('media',   'media',   true, 52428800,  -- 50 MB
+  ('media',   'media',   false, 52428800,  -- 50 MB
    array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/quicktime']),
-  ('audio',   'audio',   true, 52428800,  -- 50 MB
+  ('audio',   'audio',   false, 52428800,  -- 50 MB
    array['audio/mpeg','audio/mp4','audio/m4a','audio/webm','audio/wav','audio/ogg']),
-  ('avatars', 'avatars', true, 10485760,  -- 10 MB
+  ('avatars', 'avatars', false, 10485760,  -- 10 MB
    array['image/jpeg','image/png','image/webp'])
 on conflict (id) do update set
   public             = excluded.public,
